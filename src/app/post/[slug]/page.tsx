@@ -1,0 +1,288 @@
+import { prisma } from "@/lib/prisma";
+import { cookies } from "next/headers";
+import { notFound } from "next/navigation";
+import Link from "next/link";
+import { ArrowLeft, Calendar, Clock, Tag, Pencil } from "lucide-react";
+import { MarkdownRenderer } from "@/components/markdown-renderer";
+
+export default async function PostSeite({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
+
+  const post = await prisma.post.findUnique({
+    where: { slug },
+    include: {
+      category: {
+        include: { parent: true },
+      },
+    },
+  });
+
+  if (!post || !post.published) notFound();
+
+  const cookieStore = await cookies();
+  const isAdmin = cookieStore.get("auth-role")?.value === "admin";
+
+  const formattedDate = new Intl.DateTimeFormat("de-DE", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(post.createdAt);
+
+  return (
+    <div className="min-h-screen">
+      {/* Hero */}
+      <div className="relative h-56 md:h-72">
+        {post.coverImage ? (
+          post.coverImage.startsWith("linear-gradient") ? (
+            <div
+              className="absolute inset-0 w-full h-full"
+              style={{ background: post.coverImage }}
+            />
+          ) : (
+            <img
+              src={post.coverImage}
+              alt={post.title}
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+          )
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-accent" />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-black/20" />
+
+        <div className="relative h-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col justify-end pb-8">
+          {/* Breadcrumb */}
+          <nav className="flex items-center gap-2 text-white/70 text-sm mb-3 flex-wrap">
+            <Link href="/" className="hover:text-white transition-colors">
+              Startseite
+            </Link>
+            <span>/</span>
+            {post.category.parent && (
+              <>
+                <Link
+                  href={`/kategorie/${post.category.parent.slug}`}
+                  className="hover:text-white transition-colors"
+                >
+                  {post.category.parent.title}
+                </Link>
+                <span>/</span>
+              </>
+            )}
+            <Link
+              href={`/kategorie/${post.category.slug}`}
+              className="hover:text-white transition-colors"
+            >
+              {post.category.title}
+            </Link>
+          </nav>
+
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl md:text-4xl font-bold text-white">
+              {post.title}
+            </h1>
+            {isAdmin && (
+              <Link
+                href={`/admin/posts/${post.id}`}
+                className="shrink-0 w-8 h-8 rounded-lg bg-white/15 hover:bg-white/25 flex items-center justify-center transition-colors"
+                title="Beitrag bearbeiten"
+              >
+                <Pencil className="w-4 h-4 text-white" />
+              </Link>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Back + Meta */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+          <Link
+            href={`/kategorie/${post.category.slug}`}
+            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Zurück zu {post.category.title}
+          </Link>
+
+          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            <span className="flex items-center gap-1.5">
+              <Calendar className="w-4 h-4" />
+              {formattedDate}
+            </span>
+            {post.duration && (
+              <span className="flex items-center gap-1.5">
+                <Clock className="w-4 h-4" />
+                {post.duration}
+              </span>
+            )}
+            <span className="flex items-center gap-1.5">
+              <Tag className="w-4 h-4" />
+              {post.category.title}
+            </span>
+          </div>
+        </div>
+
+        {/* Description */}
+        {post.description && (
+          <div className="mb-8 p-4 rounded-xl bg-accent/50 border border-border/60">
+            <p className="text-muted-foreground leading-relaxed">
+              {post.description}
+            </p>
+          </div>
+        )}
+
+        {/* Article Content */}
+        <article className="prose prose-lg max-w-none">
+          {post.editorType === "MARKDOWN" ? (
+            <MarkdownRenderer content={post.content} />
+          ) : (
+            <EditorJSRenderer content={post.content} />
+          )}
+        </article>
+      </div>
+    </div>
+  );
+}
+
+function EditorJSRenderer({ content }: { content: string }) {
+  try {
+    const data = JSON.parse(content);
+    if (!data.blocks) return null;
+
+    return (
+      <div className="space-y-4">
+        {data.blocks.map((block: Record<string, unknown>, i: number) => {
+          switch (block.type) {
+            case "header": {
+              const headerData = block.data as { text: string; level: number };
+              const level = headerData.level;
+              if (level === 1) return <h1 key={i} dangerouslySetInnerHTML={{ __html: headerData.text }} />;
+              if (level === 2) return <h2 key={i} dangerouslySetInnerHTML={{ __html: headerData.text }} />;
+              if (level === 3) return <h3 key={i} dangerouslySetInnerHTML={{ __html: headerData.text }} />;
+              if (level === 4) return <h4 key={i} dangerouslySetInnerHTML={{ __html: headerData.text }} />;
+              return <h5 key={i} dangerouslySetInnerHTML={{ __html: headerData.text }} />;
+            }
+            case "paragraph": {
+              const pData = block.data as { text: string };
+              return (
+                <p key={i} dangerouslySetInnerHTML={{ __html: pData.text }} />
+              );
+            }
+            case "list": {
+              const listData = block.data as {
+                style: string;
+                items: string[];
+              };
+              const ListTag = listData.style === "ordered" ? "ol" : "ul";
+              return (
+                <ListTag key={i}>
+                  {listData.items.map((item: string, j: number) => (
+                    <li key={j} dangerouslySetInnerHTML={{ __html: item }} />
+                  ))}
+                </ListTag>
+              );
+            }
+            case "image": {
+              const imgData = block.data as {
+                file: { url: string };
+                caption?: string;
+              };
+              return (
+                <figure key={i}>
+                  <img
+                    src={imgData.file.url}
+                    alt={imgData.caption || ""}
+                    className="rounded-lg"
+                  />
+                  {imgData.caption && (
+                    <figcaption className="text-center text-sm text-muted-foreground mt-2">
+                      {imgData.caption}
+                    </figcaption>
+                  )}
+                </figure>
+              );
+            }
+            case "quote": {
+              const quoteData = block.data as {
+                text: string;
+                caption?: string;
+              };
+              return (
+                <blockquote key={i}>
+                  <p dangerouslySetInnerHTML={{ __html: quoteData.text }} />
+                  {quoteData.caption && (
+                    <cite className="text-sm">{quoteData.caption}</cite>
+                  )}
+                </blockquote>
+              );
+            }
+            case "code": {
+              const codeData = block.data as { code: string };
+              return (
+                <pre key={i}>
+                  <code>{codeData.code}</code>
+                </pre>
+              );
+            }
+            case "embed": {
+              const embedData = block.data as {
+                service: string;
+                embed: string;
+                caption?: string;
+              };
+              return (
+                <figure key={i}>
+                  <iframe
+                    src={embedData.embed}
+                    className="w-full aspect-video rounded-lg"
+                    allowFullScreen
+                  />
+                  {embedData.caption && (
+                    <figcaption className="text-center text-sm text-muted-foreground mt-2">
+                      {embedData.caption}
+                    </figcaption>
+                  )}
+                </figure>
+              );
+            }
+            case "table": {
+              const tableData = block.data as {
+                withHeadings: boolean;
+                content: string[][];
+              };
+              return (
+                <table key={i}>
+                  <tbody>
+                    {tableData.content.map((row: string[], ri: number) => (
+                      <tr key={ri}>
+                        {row.map((cell: string, ci: number) => {
+                          const CellTag =
+                            tableData.withHeadings && ri === 0 ? "th" : "td";
+                          return (
+                            <CellTag
+                              key={ci}
+                              dangerouslySetInnerHTML={{ __html: cell }}
+                            />
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              );
+            }
+            default:
+              return null;
+          }
+        })}
+      </div>
+    );
+  } catch {
+    return <p className="text-muted-foreground">Inhalt konnte nicht geladen werden.</p>;
+  }
+}

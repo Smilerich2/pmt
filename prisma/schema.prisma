@@ -1,0 +1,46 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Category {
+  id          String     @id @default(cuid())
+  title       String
+  slug        String     @unique
+  description String?
+  image       String?
+
+  parentId    String?
+  parent      Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children    Category[] @relation("CategoryHierarchy")
+
+  posts       Post[]
+  position    Int        @default(0)
+  createdAt   DateTime   @default(now())
+}
+
+model Post {
+  id          String   @id @default(cuid())
+  title       String
+  slug        String   @unique
+  description String?
+
+  content     String
+  editorType  String
+
+  categoryId  String
+  category    Category @relation(fields: [categoryId], references: [id])
+
+  coverImage  String?
+  type        String   @default("text")
+  duration    String?
+
+  published   Boolean  @default(false)
+  position    Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
