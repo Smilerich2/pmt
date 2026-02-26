@@ -7,10 +7,9 @@ services:
       - "3000:3000"
     volumes:
       - pmt-data:/data
-      - pmt-uploads:/app/public/uploads
+      - /var/www/pmt-uploads:/app/public/uploads
     env_file:
       - .env
 
 volumes:
   pmt-data:
-  pmt-uploads:
