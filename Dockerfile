@@ -44,4 +44,4 @@ RUN mkdir -p /app/public/uploads
 EXPOSE 3000
 
 # Migrationen ausführen, dann App starten
-CMD ["sh", "-c", "node node_modules/.bin/prisma migrate deploy && node server.js"]
+CMD ["sh", "-c", "node node_modules/prisma/build/index.js migrate deploy && node server.js"]
