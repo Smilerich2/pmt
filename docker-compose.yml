@@ -1,0 +1,16 @@
+services:
+  pmt:
+    build: .
+    container_name: pmt
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - pmt-data:/data
+      - pmt-uploads:/app/public/uploads
+    env_file:
+      - .env
+
+volumes:
+  pmt-data:
+  pmt-uploads:
