@@ -1,6 +1,8 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 
+RUN apk add --no-cache openssl
+
 # Dependencies (eigener Layer → wird gecacht solange package.json gleich bleibt)
 COPY package.json package-lock.json ./
 RUN npm ci
@@ -12,6 +14,8 @@ RUN npx prisma generate && npm run build
 # ─── Production Image ───
 FROM node:20-alpine AS runner
 WORKDIR /app
+
+RUN apk add --no-cache openssl
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
