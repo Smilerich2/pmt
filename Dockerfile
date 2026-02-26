@@ -9,7 +9,12 @@ RUN npm ci
 
 # Quellcode + Build
 COPY . .
-RUN npx prisma generate && npm run build
+RUN npx prisma generate
+
+# Dummy-DB für den Build (damit Prisma-Aufrufe beim Prerendering funktionieren)
+ENV DATABASE_URL=file:/tmp/build.db
+RUN npx prisma migrate deploy
+RUN npm run build
 
 # ─── Production Image ───
 FROM node:20-alpine AS runner
