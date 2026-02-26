@@ -166,6 +166,78 @@ export function BildBlock({ config }: { config: BildConfig }) {
   );
 }
 
+// ─── Code Demo Block ───
+
+function buildIframeHtml(code: string): string {
+  // Verhindert, dass </script> im User-Code das iframe-HTML bricht
+  const safe = code.replace(/<\/script>/gi, "<\\/script>");
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; padding: 16px; font-family: system-ui, -apple-system, sans-serif; font-size: 14px; line-height: 1.5; }
+    button { cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel" data-presets="react">
+    const {
+      useState, useEffect, useRef, useCallback,
+      useMemo, useReducer, useContext, createContext
+    } = React;
+
+    ${safe}
+
+    ReactDOM.createRoot(document.getElementById('root')).render(
+      React.createElement(App)
+    );
+  </script>
+</body>
+</html>`;
+}
+
+export function CodeDemoBlock({
+  code,
+  height,
+  title,
+}: {
+  code: string;
+  height?: number;
+  title?: string;
+}) {
+  const html = buildIframeHtml(code);
+
+  return (
+    <figure className="my-6">
+      {title && (
+        <div className="flex items-center gap-2 mb-2 px-1">
+          <div className="w-2 h-2 rounded-full bg-violet-400" />
+          <figcaption className="text-sm font-medium text-foreground/80">
+            {title}
+          </figcaption>
+        </div>
+      )}
+      <div className="overflow-hidden border border-border/60 rounded-xl shadow-sm bg-white">
+        <iframe
+          srcDoc={html}
+          height={height ?? 500}
+          width="100%"
+          sandbox="allow-scripts"
+          title={title ?? "Code Demo"}
+          className="block"
+        />
+      </div>
+    </figure>
+  );
+}
+
 // ─── Demo Block ───
 
 export function DemoBlock({

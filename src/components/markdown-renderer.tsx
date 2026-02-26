@@ -5,7 +5,7 @@ import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
-import { Callout, Accordion, Quiz, BildBlock, DemoBlock } from "./content-blocks";
+import { Callout, Accordion, Quiz, BildBlock, DemoBlock, CodeDemoBlock } from "./content-blocks";
 
 type BildConfig = {
   src: string;
@@ -25,7 +25,8 @@ type Block =
   | { type: "accordion"; title: string; content: string }
   | { type: "quiz"; question: string; options: { text: string; correct: boolean }[]; explanation?: string }
   | { type: "bild"; config: BildConfig }
-  | { type: "demo"; name: string; height?: number; title?: string };
+  | { type: "demo"; name: string; height?: number; title?: string }
+  | { type: "codedemo"; code: string; height?: number; title?: string };
 
 function parseContent(raw: string): Block[] {
   const blocks: Block[] = [];
@@ -89,6 +90,37 @@ function parseContent(raw: string): Block[] {
         i++;
       }
       blocks.push({ type: "demo", name, height, title });
+      i++; // skip closing :::
+      continue;
+    }
+
+    // ─── Code Demo: :::codedemo ───
+    if (line.trim() === ":::codedemo") {
+      flushMarkdown();
+      let height: number | undefined;
+      let title: string | undefined;
+      const codeLines: string[] = [];
+      let inCode = false;
+      i++;
+      while (i < lines.length && lines[i].trim() !== ":::") {
+        if (lines[i].trim() === "---") {
+          inCode = true;
+          i++;
+          continue;
+        }
+        if (!inCode) {
+          const propMatch = lines[i].match(/^(\w+):\s*(.+)$/);
+          if (propMatch) {
+            const [, key, val] = propMatch;
+            if (key === "height") height = parseInt(val.trim(), 10);
+            else if (key === "title") title = val.trim();
+          }
+        } else {
+          codeLines.push(lines[i]);
+        }
+        i++;
+      }
+      blocks.push({ type: "codedemo", code: codeLines.join("\n").trim(), height, title });
       i++; // skip closing :::
       continue;
     }
@@ -204,6 +236,8 @@ export function MarkdownRenderer({ content }: { content: string }) {
             return <BildBlock key={i} config={block.config} />;
           case "demo":
             return <DemoBlock key={i} name={block.name} height={block.height} title={block.title} />;
+          case "codedemo":
+            return <CodeDemoBlock key={i} code={block.code} height={block.height} title={block.title} />;
           case "markdown":
             return <MarkdownBlock key={i} content={block.content} />;
         }
