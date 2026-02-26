@@ -31,7 +31,6 @@ import {
   Eye,
   Pencil,
   Play,
-  Code2,
   type LucideIcon,
 } from "lucide-react";
 
@@ -232,15 +231,6 @@ const slashCommands: SlashCommand[] = [
     category: "Blöcke",
     action: "modal",
     modalType: "demo",
-  },
-  {
-    id: "codedemo",
-    label: "Code-Demo",
-    description: "React-Code direkt eingeben & live ausführen",
-    icon: Code2,
-    category: "Blöcke",
-    action: "modal",
-    modalType: "codedemo",
   },
 ];
 
@@ -841,154 +831,6 @@ function MediaLibraryModal({
           <button
             onClick={handleInsert}
             disabled={!selected}
-            className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-40"
-          >
-            Einfügen
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Code Demo Modal ───
-
-const CODE_STARTER = `function App() {
-  const [count, setCount] = useState(0);
-
-  return (
-    <div>
-      <h2 style={{ marginTop: 0 }}>Meine Demo</h2>
-      <p>Klicks: {count}</p>
-      <button onClick={() => setCount(count + 1)}>
-        +1
-      </button>
-    </div>
-  );
-}`;
-
-function CodeDemoModal({
-  onInsert,
-  onClose,
-}: {
-  onInsert: (md: string) => void;
-  onClose: () => void;
-}) {
-  const [code, setCode] = useState(CODE_STARTER);
-  const [title, setTitle] = useState("");
-  const [height, setHeight] = useState(400);
-  const quickHeights = [300, 400, 500, 600];
-
-  function generateBlock() {
-    const lines = [":::codedemo"];
-    lines.push(`height: ${height}`);
-    if (title.trim()) lines.push(`title: ${title.trim()}`);
-    lines.push("---");
-    lines.push(code);
-    lines.push(":::");
-    return lines.join("\n") + "\n";
-  }
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-      onClick={onClose}
-    >
-      <div
-        className="bg-card border border-border/60 rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-border/40 shrink-0">
-          <div>
-            <h3 className="font-semibold text-foreground">Code-Demo einfügen</h3>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Definiere eine <code className="bg-accent px-1 rounded">App</code>-Komponente.
-              {" "}<code className="bg-accent px-1 rounded">useState</code>,{" "}
-              <code className="bg-accent px-1 rounded">useEffect</code> u.a. sind direkt verfügbar.
-            </p>
-          </div>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {/* Code editor */}
-          <div>
-            <label className="text-sm text-muted-foreground mb-1.5 block">
-              React-Code (JSX)
-            </label>
-            <textarea
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              rows={16}
-              spellCheck={false}
-              className="w-full rounded-lg border border-input bg-foreground/[0.03] px-3 py-2.5 text-sm font-mono resize-y focus:outline-none focus:ring-2 focus:ring-ring"
-            />
-          </div>
-
-          {/* Title */}
-          <div>
-            <label className="text-sm text-muted-foreground">
-              Titel <span className="opacity-60">(optional)</span>
-            </label>
-            <input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="z. B. Interaktiver Zähler"
-              className="w-full mt-1 rounded-md border border-input bg-background px-3 py-2 text-sm"
-            />
-          </div>
-
-          {/* Height */}
-          <div>
-            <label className="text-sm text-muted-foreground mb-1.5 block">Höhe (px)</label>
-            <div className="flex gap-1.5 mb-2">
-              {quickHeights.map((h) => (
-                <button
-                  key={h}
-                  type="button"
-                  onClick={() => setHeight(h)}
-                  className={`flex-1 px-2 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                    height === h
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-accent/50 text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {h}
-                </button>
-              ))}
-            </div>
-            <input
-              type="number"
-              min={200}
-              max={1200}
-              value={height}
-              onChange={(e) => setHeight(Number(e.target.value))}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-            />
-          </div>
-
-          {/* CDN hint */}
-          <div className="rounded-lg bg-violet-50 border border-violet-200 p-3 text-xs text-violet-800">
-            <strong>Pakete via CDN:</strong> Importiere beliebige npm-Pakete direkt im Code:
-            <pre className="mt-1.5 bg-violet-100 rounded p-2 overflow-x-auto">{`import { BarChart, Bar } from 'https://esm.sh/recharts'`}</pre>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="flex justify-end gap-2 p-4 border-t border-border/40 shrink-0">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            Abbrechen
-          </button>
-          <button
-            onClick={() => onInsert(generateBlock())}
-            disabled={!code.trim()}
             className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-40"
           >
             Einfügen
@@ -2023,9 +1865,6 @@ export function SlashEditor({
       )}
       {modal === "demo" && (
         <DemoModal onInsert={handleModalInsert} onClose={() => setModal(null)} />
-      )}
-      {modal === "codedemo" && (
-        <CodeDemoModal onInsert={handleModalInsert} onClose={() => setModal(null)} />
       )}
       {showHelp && (
         <BlockHelpOverlay onClose={() => setShowHelp(false)} />
