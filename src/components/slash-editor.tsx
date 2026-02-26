@@ -31,6 +31,7 @@ import {
   Eye,
   Pencil,
   Play,
+  Globe,
   type LucideIcon,
 } from "lucide-react";
 
@@ -231,6 +232,15 @@ const slashCommands: SlashCommand[] = [
     category: "Blöcke",
     action: "modal",
     modalType: "demo",
+  },
+  {
+    id: "htmldemo",
+    label: "HTML/CSS/JS Demo",
+    description: "Interaktives Beispiel mit HTML, CSS und JavaScript",
+    icon: Globe,
+    category: "Blöcke",
+    action: "modal",
+    modalType: "htmldemo",
   },
 ];
 
@@ -832,6 +842,159 @@ function MediaLibraryModal({
             onClick={handleInsert}
             disabled={!selected}
             className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-40"
+          >
+            Einfügen
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── HTML Demo Modal ───
+
+type HtmlTab = "html" | "css" | "js";
+
+function HtmlDemoModal({
+  onInsert,
+  onClose,
+}: {
+  onInsert: (md: string) => void;
+  onClose: () => void;
+}) {
+  const [tab, setTab] = useState<HtmlTab>("html");
+  const [html, setHtml] = useState("<h2>Überschrift</h2>\n<p>Hallo Welt!</p>\n<button onclick=\"greet()\">Klick mich</button>");
+  const [css, setCss] = useState("h2 { color: #2563eb; }\nbutton { padding: 8px 16px; border-radius: 6px; border: none; background: #2563eb; color: white; cursor: pointer; }");
+  const [js, setJs] = useState("function greet() {\n  alert('Hallo!');\n}");
+  const [title, setTitle] = useState("");
+  const [height, setHeight] = useState(300);
+  const quickHeights = [200, 300, 400, 500];
+
+  function generateBlock() {
+    const lines = [":::htmldemo"];
+    lines.push(`height: ${height}`);
+    if (title.trim()) lines.push(`title: ${title.trim()}`);
+    if (html.trim()) { lines.push("---html"); lines.push(html); }
+    if (css.trim())  { lines.push("---css");  lines.push(css);  }
+    if (js.trim())   { lines.push("---js");   lines.push(js);   }
+    lines.push(":::");
+    return lines.join("\n") + "\n";
+  }
+
+  const tabs: { id: HtmlTab; label: string; value: string; setter: (v: string) => void; placeholder: string }[] = [
+    { id: "html", label: "HTML", value: html, setter: setHtml, placeholder: "<h1>Hallo</h1>" },
+    { id: "css",  label: "CSS",  value: css,  setter: setCss,  placeholder: "h1 { color: navy; }" },
+    { id: "js",   label: "JS",   value: js,   setter: setJs,   placeholder: "console.log('Hallo');" },
+  ];
+  const activeTab = tabs.find((t) => t.id === tab)!;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      onClick={onClose}
+    >
+      <div
+        className="bg-card border border-border/60 rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b border-border/40 shrink-0">
+          <div>
+            <h3 className="font-semibold text-foreground">HTML/CSS/JS Demo einfügen</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Wird als isolierter iframe eingebettet – kein React, reines HTML/CSS/JS.
+            </p>
+          </div>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {/* Tabs */}
+          <div>
+            <div className="flex gap-1 mb-2 border-b border-border/40">
+              {tabs.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setTab(t.id)}
+                  className={`px-4 py-2 text-sm font-medium rounded-t-md transition-colors ${
+                    tab === t.id
+                      ? "bg-card border border-b-card border-border/40 -mb-px text-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+            <textarea
+              key={activeTab.id}
+              value={activeTab.value}
+              onChange={(e) => activeTab.setter(e.target.value)}
+              rows={12}
+              spellCheck={false}
+              placeholder={activeTab.placeholder}
+              className="w-full rounded-lg border border-input bg-foreground/[0.03] px-3 py-2.5 text-sm font-mono resize-y focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+          </div>
+
+          {/* Title */}
+          <div>
+            <label className="text-sm text-muted-foreground">
+              Titel <span className="opacity-60">(optional)</span>
+            </label>
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="z. B. Klick-Zähler"
+              className="w-full mt-1 rounded-md border border-input bg-background px-3 py-2 text-sm"
+            />
+          </div>
+
+          {/* Height */}
+          <div>
+            <label className="text-sm text-muted-foreground mb-1.5 block">Höhe (px)</label>
+            <div className="flex gap-1.5 mb-2">
+              {quickHeights.map((h) => (
+                <button
+                  key={h}
+                  type="button"
+                  onClick={() => setHeight(h)}
+                  className={`flex-1 px-2 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                    height === h
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-accent/50 text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {h}
+                </button>
+              ))}
+            </div>
+            <input
+              type="number"
+              min={100}
+              max={1200}
+              value={height}
+              onChange={(e) => setHeight(Number(e.target.value))}
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            />
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="flex justify-end gap-2 p-4 border-t border-border/40 shrink-0">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Abbrechen
+          </button>
+          <button
+            onClick={() => onInsert(generateBlock())}
+            className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
           >
             Einfügen
           </button>
@@ -1865,6 +2028,9 @@ export function SlashEditor({
       )}
       {modal === "demo" && (
         <DemoModal onInsert={handleModalInsert} onClose={() => setModal(null)} />
+      )}
+      {modal === "htmldemo" && (
+        <HtmlDemoModal onInsert={handleModalInsert} onClose={() => setModal(null)} />
       )}
       {showHelp && (
         <BlockHelpOverlay onClose={() => setShowHelp(false)} />

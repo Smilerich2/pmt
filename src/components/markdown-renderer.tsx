@@ -5,7 +5,7 @@ import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
-import { Callout, Accordion, Quiz, BildBlock, DemoBlock } from "./content-blocks";
+import { Callout, Accordion, Quiz, BildBlock, DemoBlock, HtmlDemoBlock } from "./content-blocks";
 
 type BildConfig = {
   src: string;
@@ -25,7 +25,8 @@ type Block =
   | { type: "accordion"; title: string; content: string }
   | { type: "quiz"; question: string; options: { text: string; correct: boolean }[]; explanation?: string }
   | { type: "bild"; config: BildConfig }
-  | { type: "demo"; name: string; height?: number; title?: string };
+  | { type: "demo"; name: string; height?: number; title?: string }
+  | { type: "htmldemo"; html: string; css: string; js: string; height?: number; title?: string };
 
 function parseContent(raw: string): Block[] {
   const blocks: Block[] = [];
@@ -89,6 +90,49 @@ function parseContent(raw: string): Block[] {
         i++;
       }
       blocks.push({ type: "demo", name, height, title });
+      i++; // skip closing :::
+      continue;
+    }
+
+    // ─── HTML Demo: :::htmldemo ───
+    if (line.trim() === ":::htmldemo") {
+      flushMarkdown();
+      let height: number | undefined;
+      let title: string | undefined;
+      const htmlLines: string[] = [];
+      const cssLines: string[] = [];
+      const jsLines: string[] = [];
+      let section: "props" | "html" | "css" | "js" = "props";
+      i++;
+      while (i < lines.length && lines[i].trim() !== ":::") {
+        const l = lines[i];
+        if (l.trim() === "---html") { section = "html"; i++; continue; }
+        if (l.trim() === "---css")  { section = "css";  i++; continue; }
+        if (l.trim() === "---js")   { section = "js";   i++; continue; }
+        if (section === "props") {
+          const propMatch = l.match(/^(\w+):\s*(.+)$/);
+          if (propMatch) {
+            const [, key, val] = propMatch;
+            if (key === "height") height = parseInt(val.trim(), 10);
+            else if (key === "title") title = val.trim();
+          }
+        } else if (section === "html") {
+          htmlLines.push(l);
+        } else if (section === "css") {
+          cssLines.push(l);
+        } else if (section === "js") {
+          jsLines.push(l);
+        }
+        i++;
+      }
+      blocks.push({
+        type: "htmldemo",
+        html: htmlLines.join("\n"),
+        css: cssLines.join("\n"),
+        js: jsLines.join("\n"),
+        height,
+        title,
+      });
       i++; // skip closing :::
       continue;
     }
@@ -204,6 +248,8 @@ export function MarkdownRenderer({ content }: { content: string }) {
             return <BildBlock key={i} config={block.config} />;
           case "demo":
             return <DemoBlock key={i} name={block.name} height={block.height} title={block.title} />;
+          case "htmldemo":
+            return <HtmlDemoBlock key={i} html={block.html} css={block.css} js={block.js} height={block.height} title={block.title} />;
           case "markdown":
             return <MarkdownBlock key={i} content={block.content} />;
         }

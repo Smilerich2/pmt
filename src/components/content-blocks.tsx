@@ -166,6 +166,64 @@ export function BildBlock({ config }: { config: BildConfig }) {
   );
 }
 
+// ─── HTML Demo Block ───
+
+function buildHtmlDemoSrcdoc(html: string, css: string, js: string): string {
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; padding: 16px; font-family: system-ui, -apple-system, sans-serif; font-size: 14px; line-height: 1.5; }
+    button { cursor: pointer; }
+    ${css}
+  </style>
+</head>
+<body>
+  ${html}
+  ${js ? `<script>\n${js}\n</script>` : ""}
+</body>
+</html>`;
+}
+
+export function HtmlDemoBlock({
+  html,
+  css,
+  js,
+  height,
+  title,
+}: {
+  html: string;
+  css: string;
+  js: string;
+  height?: number;
+  title?: string;
+}) {
+  const srcdoc = buildHtmlDemoSrcdoc(html, css, js);
+  return (
+    <figure className="my-6">
+      {title && (
+        <div className="flex items-center gap-2 mb-2 px-1">
+          <div className="w-2 h-2 rounded-full bg-sky-400" />
+          <figcaption className="text-sm font-medium text-foreground/80">{title}</figcaption>
+        </div>
+      )}
+      <div className="overflow-hidden border border-border/60 rounded-xl shadow-sm bg-white">
+        <iframe
+          srcDoc={srcdoc}
+          height={height ?? 400}
+          width="100%"
+          sandbox="allow-scripts"
+          title={title ?? "HTML Demo"}
+          className="block"
+        />
+      </div>
+    </figure>
+  );
+}
+
 // ─── Demo Block ───
 
 export function DemoBlock({
