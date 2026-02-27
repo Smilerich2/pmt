@@ -1,6 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
+import "katex/dist/katex.min.css";
 import {
   Lightbulb,
   AlertTriangle,
@@ -10,6 +15,39 @@ import {
   XCircle,
   BookOpen,
 } from "lucide-react";
+
+/** Renders markdown + KaTeX inside block contexts (callout, accordion). */
+function BlockContent({ text }: { text: string }) {
+  return (
+    <ReactMarkdown
+      remarkPlugins={[remarkGfm, remarkMath]}
+      rehypePlugins={[rehypeKatex]}
+      components={{
+        p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+        strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+        a: ({ href, children }) => <a href={href} className="underline underline-offset-2">{children}</a>,
+      }}
+    >
+      {text}
+    </ReactMarkdown>
+  );
+}
+
+/** Renders markdown + KaTeX inline (strips paragraph wrapper). */
+function InlineContent({ text }: { text: string }) {
+  return (
+    <ReactMarkdown
+      remarkPlugins={[remarkGfm, remarkMath]}
+      rehypePlugins={[rehypeKatex]}
+      components={{
+        p: ({ children }) => <>{children}</>,
+        strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+      }}
+    >
+      {text}
+    </ReactMarkdown>
+  );
+}
 
 // ─── Callout Boxes ───
 
@@ -58,7 +96,9 @@ export function Callout({
         <Icon className={`w-4 h-4 ${config.iconClass}`} />
         {config.label}
       </div>
-      <div className="text-sm leading-relaxed">{children}</div>
+      <div className="text-sm leading-relaxed">
+        <BlockContent text={children} />
+      </div>
     </div>
   );
 }
@@ -93,7 +133,7 @@ export function Accordion({
         }`}
       >
         <div className="px-4 pb-4 text-sm text-foreground/85 leading-relaxed border-t border-border/40 pt-3">
-          {children}
+          <BlockContent text={children} />
         </div>
       </div>
     </div>
@@ -293,7 +333,9 @@ export function Quiz({
 
   return (
     <div className="my-4 rounded-xl border border-border/60 bg-card p-5">
-      <p className="font-semibold text-foreground mb-3">{question}</p>
+      <div className="font-semibold text-foreground mb-3">
+        <InlineContent text={question} />
+      </div>
 
       <div className="space-y-2 mb-4">
         {options.map((option, i) => {
@@ -321,7 +363,7 @@ export function Quiz({
               <span className="w-6 h-6 rounded-full border border-current/20 flex items-center justify-center text-xs font-medium shrink-0">
                 {String.fromCharCode(65 + i)}
               </span>
-              <span className="flex-1">{option.text}</span>
+              <span className="flex-1"><InlineContent text={option.text} /></span>
               {revealed && option.correct && (
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
               )}
@@ -345,7 +387,7 @@ export function Quiz({
         <div>
           {explanation && (
             <div className="mt-3 p-3 rounded-lg bg-accent/50 text-sm text-foreground/85 leading-relaxed">
-              <strong>Erklärung:</strong> {explanation}
+              <strong>Erklärung:</strong> <InlineContent text={explanation} />
             </div>
           )}
           <button
