@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
+
+export const dynamic = "force-dynamic";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Calendar, Clock, Tag, Pencil } from "lucide-react";

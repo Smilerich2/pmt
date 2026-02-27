@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { SiteHeader } from "@/components/site-header";
+
+export const dynamic = "force-dynamic";
 import { CategoryCard } from "@/components/category-card";
 
 export default async function HomePage() {
