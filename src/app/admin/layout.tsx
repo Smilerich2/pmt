@@ -9,6 +9,7 @@ import {
   FolderOpen,
   FileText,
   ImageIcon,
+  Download,
   PanelLeftClose,
   PanelLeft,
 } from "lucide-react";
@@ -19,6 +20,7 @@ const navItems = [
   { href: "/admin/categories", label: "Kategorien", icon: FolderOpen },
   { href: "/admin/posts", label: "Beiträge", icon: FileText },
   { href: "/admin/media", label: "Medien", icon: ImageIcon },
+  { href: "/admin/export", label: "Export", icon: Download },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
