@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
-import { Download, Database, FileText, Eye, EyeOff, ImageIcon, Info } from "lucide-react";
+import { Download, Database, FileText, Eye, EyeOff, Info } from "lucide-react";
+import { ImportForm } from "./import-form";
 
 export const dynamic = "force-dynamic";
 
@@ -82,6 +83,9 @@ export default async function ExportPage() {
           </a>
         </div>
       </div>
+
+      {/* Import */}
+      <ImportForm />
 
       {/* Uploads-Hinweis */}
       <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 flex gap-3">
