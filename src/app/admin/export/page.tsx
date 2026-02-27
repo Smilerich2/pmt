@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { Download, Database, FileText, Eye, EyeOff, Info } from "lucide-react";
+import { Download, Database, FileText, Eye, EyeOff, PackageOpen } from "lucide-react";
 import { ImportForm } from "./import-form";
 
 export const dynamic = "force-dynamic";
@@ -17,12 +17,13 @@ export default async function ExportPage() {
     month: "2-digit",
     year: "numeric",
   });
+  const dateSlug = new Date().toISOString().slice(0, 10);
 
   return (
     <div className="max-w-2xl">
-      <h1 className="text-2xl font-bold text-foreground mb-2">Daten exportieren</h1>
+      <h1 className="text-2xl font-bold text-foreground mb-2">Backup & Import</h1>
       <p className="text-muted-foreground mb-8">
-        Lade alle Inhalte als JSON-Datei herunter – als Backup oder zur Migration.
+        Sichere alle Inhalte oder stelle sie aus einem Backup wieder her.
       </p>
 
       {/* Aktuelle Inhalte */}
@@ -47,58 +48,58 @@ export default async function ExportPage() {
         </div>
       </div>
 
-      {/* Export-Karte */}
-      <div className="rounded-xl border border-border/60 bg-card mb-6">
-        <div className="px-5 py-4 border-b border-border/40">
-          <h2 className="font-semibold text-foreground">JSON-Export</h2>
+      {/* Voll-Backup */}
+      <div className="rounded-xl border-2 border-primary/30 bg-card mb-4">
+        <div className="px-5 py-4 border-b border-border/40 flex items-center gap-2">
+          <PackageOpen className="w-4 h-4 text-primary" />
+          <h2 className="font-semibold text-foreground">Vollständiges Backup <span className="text-xs font-normal text-primary ml-1">Empfohlen</span></h2>
         </div>
         <div className="p-5">
           <p className="text-sm text-foreground/80 mb-4">
-            Die Datei enthält alle <strong>Kategorien</strong> und <strong>Beiträge</strong> mit
-            vollem Inhalt, Metadaten und Reihenfolge.
+            Alles in einer ZIP-Datei: Datenbank <strong>und</strong> alle hochgeladenen Dateien.
           </p>
-
           <ul className="text-sm text-foreground/70 space-y-1 mb-5">
-            <li className="flex items-center gap-2">
-              <span className="text-emerald-500">✓</span> Alle Kategorien mit Hierarchie
-            </li>
-            <li className="flex items-center gap-2">
-              <span className="text-emerald-500">✓</span> Alle Beiträge mit vollständigem Inhalt
-            </li>
-            <li className="flex items-center gap-2">
-              <span className="text-emerald-500">✓</span> Reihenfolge, Status (veröffentlicht/Entwurf)
-            </li>
-            <li className="flex items-center gap-2">
-              <span className="text-amber-500">~</span> Hochgeladene Bilder müssen separat gesichert werden
-            </li>
+            <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> Alle Kategorien &amp; Beiträge</li>
+            <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> Alle Bilder, Videos &amp; Uploads</li>
+            <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> Struktur &amp; Reihenfolge</li>
           </ul>
-
           <a
-            href="/api/export"
+            href="/api/export/full"
             download
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
           >
             <Download className="w-4 h-4" />
-            pmt-backup-{date.replaceAll(".", "-")}.json herunterladen
+            pmt-vollbackup-{dateSlug}.zip herunterladen
+          </a>
+        </div>
+      </div>
+
+      {/* Nur JSON */}
+      <div className="rounded-xl border border-border/60 bg-card mb-6">
+        <div className="px-5 py-4 border-b border-border/40">
+          <h2 className="font-semibold text-foreground">Nur Inhalte (JSON)</h2>
+        </div>
+        <div className="p-5">
+          <p className="text-sm text-foreground/80 mb-4">
+            Nur Kategorien und Beiträge — ohne Uploads. Schneller, kleiner.
+          </p>
+          <ul className="text-sm text-foreground/70 space-y-1 mb-5">
+            <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> Alle Kategorien &amp; Beiträge</li>
+            <li className="flex items-center gap-2"><span className="text-amber-500">~</span> Bilder/Videos nicht enthalten</li>
+          </ul>
+          <a
+            href="/api/export"
+            download
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-border/60 bg-background text-foreground text-sm font-medium hover:bg-accent transition-colors"
+          >
+            <Download className="w-4 h-4" />
+            pmt-backup-{dateSlug}.json herunterladen
           </a>
         </div>
       </div>
 
       {/* Import */}
       <ImportForm />
-
-      {/* Uploads-Hinweis */}
-      <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 flex gap-3">
-        <Info className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-        <div className="text-sm text-amber-900">
-          <strong>Uploads separat sichern:</strong> Hochgeladene Bilder liegen auf dem Server unter{" "}
-          <code className="bg-amber-100 px-1 rounded text-xs">/var/www/pmt-uploads/</code>.
-          Zum Sichern per SSH:
-          <pre className="mt-2 bg-amber-100 rounded p-2 text-xs overflow-x-auto">
-            {`scp -r root@46.224.44.62:/var/www/pmt-uploads/ ./pmt-uploads-backup/`}
-          </pre>
-        </div>
-      </div>
     </div>
   );
 }
