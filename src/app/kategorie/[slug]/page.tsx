@@ -10,8 +10,11 @@ import {
   Clock,
   Video,
   FileText,
+  Globe,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { SiteHeader } from "@/components/site-header";
+import { ScrollToTop } from "@/components/scroll-to-top";
 
 export default async function KategorieSeite({
   params,
@@ -41,6 +44,8 @@ export default async function KategorieSeite({
 
   return (
     <div className="min-h-screen">
+      <SiteHeader />
+
       {/* Hero */}
       <div className="relative h-64 md:h-80">
         {category.image && (
@@ -95,10 +100,10 @@ export default async function KategorieSeite({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
         <Link
           href={category.parent ? `/kategorie/${category.parent.slug}` : "/"}
-          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-accent hover:bg-accent/80 text-sm font-medium text-foreground transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          {category.parent ? category.parent.title : "Zurück zur Übersicht"}
+          {category.parent ? category.parent.title : "Zur Übersicht"}
         </Link>
       </div>
 
@@ -199,6 +204,15 @@ export default async function KategorieSeite({
                           Video
                         </Badge>
                       )}
+                      {post.type === "webpage" && (
+                        <Badge
+                          variant="secondary"
+                          className="text-xs gap-1 px-1.5 py-0"
+                        >
+                          <Globe className="w-3 h-3" />
+                          Interaktiv
+                        </Badge>
+                      )}
                       {post.duration && (
                         <span className="text-xs text-muted-foreground flex items-center gap-1">
                           <Clock className="w-3 h-3" />
@@ -230,7 +244,20 @@ export default async function KategorieSeite({
             </p>
           </div>
         )}
+
+        {/* Bottom Back Button */}
+        <div className="mt-12 pt-8 border-t border-border/60">
+          <Link
+            href={category.parent ? `/kategorie/${category.parent.slug}` : "/"}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-accent hover:bg-accent/80 text-sm font-medium text-foreground transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            {category.parent ? `Zurück zu „${category.parent.title}"` : "Zur Übersicht"}
+          </Link>
+        </div>
       </div>
+
+      <ScrollToTop />
     </div>
   );
 }

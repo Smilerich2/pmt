@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ImageUpload } from "@/components/image-upload";
 import { SlashEditor } from "@/components/slash-editor";
+import { HtmlPageEditor } from "@/components/html-page-editor";
 
 type Category = {
   id: string;
@@ -31,6 +32,7 @@ export default function EditPostPage() {
   const [content, setContent] = useState("");
   const [coverImage, setCoverImage] = useState("");
   const [postType, setPostType] = useState("text");
+  const [editorType, setEditorType] = useState("MARKDOWN");
   const [duration, setDuration] = useState("");
   const [published, setPublished] = useState(false);
 
@@ -45,12 +47,19 @@ export default function EditPostPage() {
       setContent(post.content ?? "");
       setCoverImage(post.coverImage ?? "");
       setPostType(post.type ?? "text");
+      setEditorType(post.editorType === "HTML" ? "HTML" : "MARKDOWN");
       setDuration(post.duration ?? "");
       setPublished(post.published ?? false);
       setCategories(cats);
       setLoading(false);
     });
   }, [id]);
+
+  function handlePostTypeChange(value: string) {
+    setPostType(value);
+    setEditorType(value === "webpage" ? "HTML" : "MARKDOWN");
+    setContent("");
+  }
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -64,7 +73,7 @@ export default function EditPostPage() {
           title,
           description: description || null,
           content,
-          editorType: "MARKDOWN",
+          editorType,
           categoryId,
           coverImage: coverImage || null,
           type: postType,
@@ -90,6 +99,8 @@ export default function EditPostPage() {
       </div>
     );
   }
+
+  const isWebpage = editorType === "HTML";
 
   return (
     <div>
@@ -154,11 +165,12 @@ export default function EditPostPage() {
               <select
                 id="type"
                 value={postType}
-                onChange={(e) => setPostType(e.target.value)}
+                onChange={(e) => handlePostTypeChange(e.target.value)}
                 className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
               >
                 <option value="text">Text</option>
                 <option value="video">Video</option>
+                <option value="webpage">Webseite (HTML/CSS/JS)</option>
               </select>
             </div>
             <div className="space-y-2">
@@ -173,9 +185,29 @@ export default function EditPostPage() {
           </div>
         </div>
 
+        {/* Editor – Markdown oder HTML je nach Typ */}
         <div className="space-y-2">
-          <Label>Inhalt (Markdown) — Tippe <kbd className="px-1.5 py-0.5 rounded bg-accent text-xs font-mono">/</kbd> für Blöcke</Label>
-          <SlashEditor value={content} onChange={setContent} />
+          {isWebpage ? (
+            <>
+              <Label>
+                Inhalt (HTML/CSS/JS) —{" "}
+                <span className="text-muted-foreground font-normal">
+                  Vollständige Webseite einfügen oder Template nutzen
+                </span>
+              </Label>
+              <HtmlPageEditor value={content} onChange={setContent} />
+            </>
+          ) : (
+            <>
+              <Label>
+                Inhalt (Markdown) —{" "}
+                <span className="text-muted-foreground font-normal">
+                  Tippe <kbd className="px-1.5 py-0.5 rounded bg-accent text-xs font-mono">/</kbd> für Blöcke
+                </span>
+              </Label>
+              <SlashEditor value={content} onChange={setContent} />
+            </>
+          )}
         </div>
 
         <div className="flex items-center justify-between border-t border-border/60 pt-6">

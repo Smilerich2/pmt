@@ -6,6 +6,10 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Calendar, Clock, Tag, Pencil } from "lucide-react";
 import { MarkdownRenderer } from "@/components/markdown-renderer";
+import { HtmlPostViewer } from "@/components/html-post-viewer";
+import { SiteHeader } from "@/components/site-header";
+import { ScrollToTop } from "@/components/scroll-to-top";
+import { BackToTopButton } from "@/components/back-to-top-button";
 
 export default async function PostSeite({
   params,
@@ -36,6 +40,8 @@ export default async function PostSeite({
 
   return (
     <div className="min-h-screen">
+      <SiteHeader />
+
       {/* Hero */}
       <div className="relative h-56 md:h-72">
         {post.coverImage ? (
@@ -105,10 +111,10 @@ export default async function PostSeite({
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <Link
             href={`/kategorie/${post.category.slug}`}
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-accent hover:bg-accent/80 text-sm font-medium text-foreground transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
-            Zurück zu {post.category.title}
+            {post.category.title}
           </Link>
 
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
@@ -139,14 +145,44 @@ export default async function PostSeite({
         )}
 
         {/* Article Content */}
-        <article className="prose prose-lg max-w-none">
-          {post.editorType === "MARKDOWN" ? (
-            <MarkdownRenderer content={post.content} />
-          ) : (
-            <EditorJSRenderer content={post.content} />
-          )}
-        </article>
+        {post.editorType === "HTML" ? (
+          <HtmlPostViewer content={post.content} />
+        ) : (
+          <article className="prose prose-lg max-w-none">
+            {post.editorType === "MARKDOWN" ? (
+              <MarkdownRenderer content={post.content} />
+            ) : (
+              <EditorJSRenderer content={post.content} />
+            )}
+          </article>
+        )}
+
+        {/* Bottom Navigation */}
+        <div className="mt-12 pt-8 border-t border-border/60 flex flex-wrap items-center justify-between gap-3">
+          <Link
+            href={`/kategorie/${post.category.slug}`}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-accent hover:bg-accent/80 text-sm font-medium text-foreground transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Zurück zu „{post.category.title}"
+          </Link>
+
+          <div className="flex items-center gap-2">
+            {isAdmin && (
+              <Link
+                href={`/admin/posts/${post.id}`}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary text-sm font-medium transition-colors border border-primary/20"
+              >
+                <Pencil className="w-4 h-4" />
+                Beitrag bearbeiten
+              </Link>
+            )}
+            <BackToTopButton />
+          </div>
+        </div>
       </div>
+
+      <ScrollToTop />
     </div>
   );
 }
