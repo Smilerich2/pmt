@@ -55,16 +55,15 @@ export default async function HomePage() {
       <SiteHeader />
 
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-primary/15 via-accent/30 to-background py-12 md:py-20">
+      <section className="bg-gradient-to-br from-primary/15 via-accent/30 to-background py-6 md:py-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto mb-8">
-            <h2 className="text-3xl md:text-5xl font-bold text-foreground mb-4">
+          <div className="text-center max-w-3xl mx-auto">
+            <h2 className="text-2xl md:text-4xl font-bold text-foreground mb-2">
               Willkommen im{" "}
               <span className="text-primary">LernHub</span>
             </h2>
-            <p className="text-lg text-muted-foreground mb-8">
+            <p className="text-base text-muted-foreground mb-5">
               Dein Begleiter durch die Ausbildung zum Packmitteltechnologen.
-              Wähle ein Themengebiet und starte mit dem Lernen.
             </p>
             <SearchBar />
           </div>
