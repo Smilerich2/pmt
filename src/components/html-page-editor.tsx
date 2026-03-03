@@ -359,6 +359,68 @@ ${userStyle}
 `
     : ""
 }
+# ICONS – KEINE EMOJIS
+
+Verwende **niemals Emojis** (❌ kein ✅ 📌 ⚠️ ℹ️ usw.).
+Nutze stattdessen **inline SVG-Icons aus der Lucide-Bibliothek** – kein externes Framework nötig.
+
+## Icon-Hilfsstil (einmal im <style>-Tag definieren)
+\`\`\`css
+.icon { display:inline-block; vertical-align:middle; flex-shrink:0; }
+\`\`\`
+
+## Verwendung
+\`\`\`html
+<svg class="icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18"
+  viewBox="0 0 24 24" fill="none" stroke="currentColor"
+  stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Pfad hier -->
+</svg>
+\`\`\`
+
+## Lucide Icon-Bibliothek (direkt verwenden)
+
+| Icon | Pfad(e) |
+|---|---|
+| check-circle | \`<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>\` |
+| x-circle | \`<circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/>\` |
+| alert-triangle | \`<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/>\` |
+| info | \`<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>\` |
+| lightbulb | \`<path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/>\` |
+| book-open | \`<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>\` |
+| chevron-down | \`<path d="m6 9 6 6 6-6"/>\` |
+| chevron-right | \`<path d="m9 18 6-6-6-6"/>\` |
+| chevron-up | \`<path d="m18 15-6-6-6 6"/>\` |
+| arrow-right | \`<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>\` |
+| check | \`<path d="M20 6 9 17l-5-5"/>\` |
+| x | \`<path d="M18 6 6 18"/><path d="m6 6 12 12"/>\` |
+| plus | \`<path d="M5 12h14"/><path d="M12 5v14"/>\` |
+| minus | \`<path d="M5 12h14"/>\` |
+| star | \`<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>\` |
+| clock | \`<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>\` |
+| target | \`<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>\` |
+| zap | \`<path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/>\` |
+| graduation-cap | \`<path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z"/><path d="M22 10v6"/><path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5"/>\` |
+| layers | \`<path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0l8.57-3.908a1 1 0 0 0 0-1.832z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/>\` |
+| package | \`<path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12"/><path d="m3.3 7 7.703 4.734a2 2 0 0 0 1.994 0L20.7 7"/><path d="m7.5 4.27 9 5.15"/>\` |
+
+## Beispiel Info-Box mit SVG statt Emoji
+\`\`\`html
+<div class="box box-blue">
+  <svg class="icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+    stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>
+  </svg>
+  Information hier.
+</div>
+\`\`\`
+\`\`\`css
+.box { display:flex; align-items:flex-start; gap:.625rem; padding:.875rem 1.125rem;
+  border-radius:var(--radius-sm); border-left:4px solid; margin-bottom:1rem; }
+.box .icon { margin-top:.15rem; }
+\`\`\`
+
 # MEDIEN EINBINDEN
 
 \`\`\`html
@@ -375,6 +437,7 @@ Konkrete Dateinamen vom Nutzer erfragen oder Platzhalter lassen.
 - Animationen und Interaktivität erwünscht – aber sparsam und zweckgebunden
 - Alle CSS-Klassen in einem einzigen <style>-Tag im <head>
 - JavaScript in einem einzigen <script>-Tag am Ende von <body>
+- Keine Emojis – immer inline SVG aus der obigen Icon-Bibliothek
 
 # INHALTS-VORGABEN
 
