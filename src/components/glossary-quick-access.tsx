@@ -14,6 +14,7 @@ export function GlossaryQuickAccess() {
   const [open, setOpen] = useState(false);
   const [terms, setTerms] = useState<Term[] | null>(null);
   const [search, setSearch] = useState("");
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -35,6 +36,7 @@ export function GlossaryQuickAccess() {
       setTimeout(() => inputRef.current?.focus(), 50);
     } else {
       setSearch("");
+      setExpandedId(null);
     }
   }
 
@@ -106,19 +108,23 @@ export function GlossaryQuickAccess() {
                 Keine Begriffe gefunden
               </p>
             ) : (
-              filtered.slice(0, 50).map((t) => (
-                <div
-                  key={t.id}
-                  className="px-3 py-2 rounded-lg hover:bg-muted/60 transition-colors"
-                >
-                  <p className="text-sm font-semibold text-foreground">
-                    {t.term}
-                  </p>
-                  <p className="text-xs text-muted-foreground truncate">
-                    {t.definition}
-                  </p>
-                </div>
-              ))
+              filtered.slice(0, 50).map((t) => {
+                const isExpanded = expandedId === t.id;
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() => setExpandedId(isExpanded ? null : t.id)}
+                    className="w-full text-left px-3 py-2 rounded-lg hover:bg-muted/60 transition-colors"
+                  >
+                    <p className="text-sm font-semibold text-foreground">
+                      {t.term}
+                    </p>
+                    <p className={`text-xs text-muted-foreground ${isExpanded ? "" : "line-clamp-2"}`}>
+                      {t.definition}
+                    </p>
+                  </button>
+                );
+              })
             )}
           </div>
 
