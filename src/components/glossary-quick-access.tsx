@@ -73,7 +73,13 @@ export function GlossaryQuickAccess() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-80 max-h-96 bg-card border border-border shadow-xl rounded-xl flex flex-col z-50">
+        <>
+          {/* Mobile backdrop */}
+          <div className="fixed inset-0 bg-black/20 sm:hidden z-40" onClick={toggle} />
+        </>
+      )}
+      {open && (
+        <div className="fixed inset-x-3 top-[4.5rem] max-h-[calc(100vh-6rem)] sm:absolute sm:inset-auto sm:right-0 sm:top-full sm:mt-2 sm:w-80 sm:max-h-96 bg-card border border-border shadow-xl rounded-xl flex flex-col z-50">
           {/* Search */}
           <div className="p-3 border-b border-border/60">
             <div className="relative">

@@ -62,7 +62,7 @@ export function GlossaryPageClient({ terms }: { terms: Term[] }) {
       </div>
 
       {/* Alphabet Bar */}
-      <div className="flex flex-wrap gap-1 mb-8">
+      <div className="flex gap-1 mb-8 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap sm:overflow-visible sm:pb-0 scrollbar-none">
         {ALPHABET.map((letter) => {
           const available = availableLetters.has(letter);
           return (
@@ -70,7 +70,7 @@ export function GlossaryPageClient({ terms }: { terms: Term[] }) {
               key={letter}
               onClick={() => available && scrollToLetter(letter)}
               disabled={!available}
-              className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${
+              className={`w-8 h-8 shrink-0 rounded-lg text-sm font-medium transition-colors ${
                 available
                   ? "bg-primary/10 text-primary hover:bg-primary/20"
                   : "bg-muted/50 text-muted-foreground/40 cursor-default"
@@ -97,12 +97,12 @@ export function GlossaryPageClient({ terms }: { terms: Term[] }) {
                 {grouped[letter].map((t) => (
                   <div
                     key={t.id}
-                    className="bg-card border border-border/60 rounded-xl p-4"
+                    className="bg-card border border-border/60 rounded-xl p-3 sm:p-4"
                   >
-                    <p className="font-semibold text-foreground mb-1">
+                    <p className="font-semibold text-foreground mb-1 text-sm sm:text-base">
                       {t.term}
                     </p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-xs sm:text-sm text-muted-foreground">
                       {t.definition}
                     </p>
                   </div>

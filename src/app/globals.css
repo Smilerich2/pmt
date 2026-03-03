@@ -125,6 +125,15 @@
   }
 }
 
+/* Hide scrollbar utility */
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
 /* Prose-Styling für Markdown-Inhalte */
 .prose h1, .prose h2, .prose h3 {
   color: oklch(0.18 0.02 260);
