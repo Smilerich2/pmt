@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Search, FileText, Video, Globe, X } from "lucide-react";
 import Link from "next/link";
+import { stripAccent } from "@/lib/utils";
 
 interface SearchResult {
   id: string;
@@ -113,7 +114,7 @@ export function SearchBar() {
                     >
                       <Icon className="w-4 h-4 text-primary mt-0.5 shrink-0" />
                       <div className="min-w-0">
-                        <p className="text-sm font-medium text-foreground truncate">{r.title}</p>
+                        <p className="text-sm font-medium text-foreground truncate">{stripAccent(r.title)}</p>
                         <p className="text-xs text-muted-foreground truncate">{r.category.title}</p>
                       </div>
                     </Link>

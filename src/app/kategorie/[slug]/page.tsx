@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { stripAccent } from "@/lib/utils";
 import { notFound } from "next/navigation";
 
 export const dynamic = "force-dynamic";
@@ -228,7 +229,7 @@ export default async function KategorieSeite({
                       )}
                     </div>
                     <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-1">
-                      {post.title}
+                      {stripAccent(post.title)}
                     </h3>
                     {post.description && (
                       <p className="text-sm text-muted-foreground line-clamp-2 mt-0.5">

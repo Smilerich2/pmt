@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { stripAccent } from "@/lib/utils";
 import {
   Plus,
   FileText,
@@ -186,7 +187,7 @@ function PostsContent() {
                   href={`/post/${post.slug}`}
                   className="font-semibold text-foreground hover:text-primary transition-colors truncate"
                 >
-                  {post.title}
+                  {stripAccent(post.title)}
                 </Link>
               </div>
               <p className="text-sm text-muted-foreground">

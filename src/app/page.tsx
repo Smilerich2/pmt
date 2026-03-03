@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { stripAccent } from "@/lib/utils";
 import { SiteHeader } from "@/components/site-header";
 import { SearchBar } from "@/components/search-bar";
 import { FeedbackButton } from "@/components/feedback-button";
@@ -109,7 +110,7 @@ export default async function HomePage() {
                     </span>
                   </div>
                   <h4 className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-2 mb-1">
-                    {post.title}
+                    {stripAccent(post.title)}
                   </h4>
                   <p className="text-xs text-muted-foreground">{post.category.title}</p>
                   <p className="text-xs text-muted-foreground/60 mt-1">

@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { stripAccent } from "@/lib/utils";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -248,7 +249,7 @@ export default async function AdminDashboard() {
                 >
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-foreground group-hover:text-primary transition-colors truncate">
-                      {post.title}
+                      {stripAccent(post.title)}
                     </p>
                     <p className="text-xs text-muted-foreground truncate">
                       {post.category.title}
