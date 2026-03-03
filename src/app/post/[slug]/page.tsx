@@ -25,14 +25,19 @@ export default async function PostSeite({
     create: { path: `/post/${slug}`, date: today, count: 1 },
   }).catch(() => {});
 
-  const post = await prisma.post.findUnique({
-    where: { slug },
-    include: {
-      category: {
-        include: { parent: true },
+  const [post, glossaryTerms] = await Promise.all([
+    prisma.post.findUnique({
+      where: { slug },
+      include: {
+        category: {
+          include: { parent: true },
+        },
       },
-    },
-  });
+    }),
+    prisma.glossaryTerm.findMany({
+      select: { term: true, definition: true },
+    }),
+  ]);
 
   if (!post || !post.published) notFound();
 
@@ -157,7 +162,7 @@ export default async function PostSeite({
         ) : (
           <article className="prose prose-lg max-w-none">
             {post.editorType === "MARKDOWN" ? (
-              <MarkdownRenderer content={post.content} />
+              <MarkdownRenderer content={post.content} glossary={glossaryTerms} />
             ) : (
               <EditorJSRenderer content={post.content} />
             )}

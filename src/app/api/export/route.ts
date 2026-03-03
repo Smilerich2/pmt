@@ -9,7 +9,7 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const [categories, posts] = await Promise.all([
+  const [categories, posts, glossaryTerms] = await Promise.all([
     prisma.category.findMany({
       orderBy: { position: "asc" },
     }),
@@ -18,6 +18,9 @@ export async function GET() {
         category: { select: { title: true, slug: true } },
       },
       orderBy: { position: "asc" },
+    }),
+    prisma.glossaryTerm.findMany({
+      orderBy: { term: "asc" },
     }),
   ]);
 
@@ -32,6 +35,7 @@ export async function GET() {
     },
     categories,
     posts,
+    glossaryTerms,
   };
 
   const date = new Date().toISOString().slice(0, 10);

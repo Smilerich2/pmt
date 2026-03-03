@@ -49,6 +49,46 @@ function InlineContent({ text }: { text: string }) {
   );
 }
 
+// ─── Glossar Tooltip ───
+
+export function GlossarTooltip({
+  term,
+  definition,
+}: {
+  term: string;
+  definition: string;
+}) {
+  const [show, setShow] = useState(false);
+  const id = `glossar-${term.replace(/\s+/g, "-").toLowerCase()}`;
+
+  return (
+    <span
+      className="relative inline-block"
+      onMouseEnter={() => setShow(true)}
+      onMouseLeave={() => setShow(false)}
+      onClick={() => setShow((s) => !s)}
+    >
+      <span
+        className="border-b-2 border-dotted border-primary/60 cursor-help text-foreground"
+        aria-describedby={id}
+      >
+        {term}
+      </span>
+      {show && (
+        <span
+          id={id}
+          role="tooltip"
+          className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 max-w-[90vw] px-3 py-2 rounded-lg bg-foreground text-background text-xs leading-relaxed shadow-lg pointer-events-none"
+        >
+          <span className="font-semibold block mb-0.5">{term}</span>
+          {definition}
+          <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-foreground" />
+        </span>
+      )}
+    </span>
+  );
+}
+
 // ─── Callout Boxes ───
 
 const calloutConfig = {

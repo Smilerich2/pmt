@@ -13,12 +13,13 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const [categories, posts] = await Promise.all([
+  const [categories, posts, glossaryTerms] = await Promise.all([
     prisma.category.findMany({ orderBy: { position: "asc" } }),
     prisma.post.findMany({
       include: { category: { select: { title: true, slug: true } } },
       orderBy: { position: "asc" },
     }),
+    prisma.glossaryTerm.findMany({ orderBy: { term: "asc" } }),
   ]);
 
   const exportData = {
@@ -32,6 +33,7 @@ export async function GET() {
     },
     categories,
     posts,
+    glossaryTerms,
   };
 
   const uploadsDir = path.join(process.cwd(), "public", "uploads");

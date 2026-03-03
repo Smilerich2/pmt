@@ -14,6 +14,7 @@ export async function POST(request: NextRequest) {
     version?: number;
     categories?: { id: string; title: string; slug: string; description?: string | null; image?: string | null; parentId?: string | null; position?: number }[];
     posts?: { id: string; title: string; slug: string; content?: string | null; published?: boolean; editorType?: string; categoryId: string; position?: number; createdAt?: string; updatedAt?: string }[];
+    glossaryTerms?: { id: string; term: string; slug: string; definition: string; createdAt?: string; updatedAt?: string }[];
   };
 
   try {
@@ -64,6 +65,7 @@ export async function POST(request: NextRequest) {
     // Clear existing data (posts first due to FK)
     await prisma.post.deleteMany();
     await prisma.category.deleteMany();
+    await prisma.glossaryTerm.deleteMany();
 
     // Import categories (parents before children)
     const sortedCategories = sortByHierarchy(data.categories);
@@ -99,11 +101,28 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // Import glossary terms
+    if (Array.isArray(data.glossaryTerms)) {
+      for (const gt of data.glossaryTerms) {
+        await prisma.glossaryTerm.create({
+          data: {
+            id: gt.id,
+            term: gt.term,
+            slug: gt.slug,
+            definition: gt.definition,
+            createdAt: gt.createdAt ? new Date(gt.createdAt) : undefined,
+            updatedAt: gt.updatedAt ? new Date(gt.updatedAt) : undefined,
+          },
+        });
+      }
+    }
+
     return NextResponse.json({
       success: true,
       imported: {
         categories: sortedCategories.length,
         posts: data.posts.length,
+        glossaryTerms: data.glossaryTerms?.length ?? 0,
       },
     });
   } catch (err) {

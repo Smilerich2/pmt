@@ -9,6 +9,7 @@ import {
   FolderOpen,
   FileText,
   ImageIcon,
+  BookA,
   Download,
   PanelLeftClose,
   PanelLeft,
@@ -20,6 +21,7 @@ const navItems = [
   { href: "/admin/categories", label: "Kategorien", icon: FolderOpen },
   { href: "/admin/posts", label: "Beiträge", icon: FileText },
   { href: "/admin/media", label: "Medien", icon: ImageIcon },
+  { href: "/admin/glossary", label: "Glossar", icon: BookA },
   { href: "/admin/export", label: "Export", icon: Download },
 ];
 

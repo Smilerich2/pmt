@@ -15,6 +15,7 @@ import {
   ListOrdered,
   Image,
   Code,
+  Code2,
   Minus,
   Upload,
   FolderOpen,
@@ -32,6 +33,11 @@ import {
   Pencil,
   Play,
   Globe,
+  Bold,
+  Italic,
+  Strikethrough,
+  Link,
+  BookA,
   type LucideIcon,
 } from "lucide-react";
 
@@ -105,6 +111,15 @@ const slashCommands: SlashCommand[] = [
     category: "Text",
     action: "insert",
     template: "```\nCode hier...\n```\n",
+  },
+  {
+    id: "glossar",
+    label: "Glossar-Begriff",
+    description: "Fachbegriff mit Tooltip-Erklärung",
+    icon: BookA,
+    category: "Text",
+    action: "insert",
+    template: "::glossar[Begriff]",
   },
   {
     id: "hr",
@@ -1295,6 +1310,14 @@ $$`,
     ],
   },
   {
+    name: "Glossar-Tooltips",
+    description: "Fachbegriffe aus dem Glossar mit Tooltip-Erklärung einbetten. Der Begriff muss im Admin-Glossar angelegt sein.",
+    syntax: `::glossar[Wellpappe]
+
+Wird als gepunktete Unterstreichung angezeigt. Beim Hover/Tap erscheint die Definition als Tooltip.`,
+    icon: BookA,
+  },
+  {
     name: "Standard Markdown",
     description: "Alle üblichen Markdown-Elemente werden unterstützt.",
     syntax: `# Überschrift 1
@@ -1394,7 +1417,14 @@ $$
 
 Wichtige Befehle: \\frac{a}{b} (Bruch), \\sqrt{x} (Wurzel), x^{2} (Hochgestellt), x_{i} (Tiefgestellt), \\alpha \\beta \\gamma (Griechisch), \\times \\div \\pm (Operatoren), \\sum \\int (Summe, Integral)
 
-## 6. Tabellen (Standard Markdown)
+## 6. Glossar-Tooltips
+
+Fachbegriffe, die im Glossar der Plattform hinterlegt sind, können als Tooltip eingebunden werden:
+::glossar[Wellpappe]
+
+Der Begriff wird mit gepunkteter Unterstreichung angezeigt und zeigt beim Hover die Definition.
+
+## 7. Tabellen (Standard Markdown)
 
 | Eigenschaft | Wellpappe | Vollpappe |
 | --- | --- | --- |
@@ -1665,6 +1695,65 @@ export function SlashEditor({
     [value, onChange, slashPos]
   );
 
+  // ─── Wrap selection (formatting) ───
+
+  const wrapSelection = useCallback(
+    (prefix: string, suffix: string, placeholder: string) => {
+      const ta = textareaRef.current;
+      if (!ta) return;
+      const start = ta.selectionStart;
+      const end = ta.selectionEnd;
+      const selected = value.slice(start, end);
+
+      if (selected) {
+        const newValue = value.slice(0, start) + prefix + selected + suffix + value.slice(end);
+        onChange(newValue);
+        requestAnimationFrame(() => {
+          ta.selectionStart = start + prefix.length;
+          ta.selectionEnd = end + prefix.length;
+          ta.focus();
+        });
+      } else {
+        const newValue = value.slice(0, start) + prefix + placeholder + suffix + value.slice(end);
+        onChange(newValue);
+        requestAnimationFrame(() => {
+          ta.selectionStart = start + prefix.length;
+          ta.selectionEnd = start + prefix.length + placeholder.length;
+          ta.focus();
+        });
+      }
+    },
+    [value, onChange]
+  );
+
+  const wrapLinkSelection = useCallback(() => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    const start = ta.selectionStart;
+    const end = ta.selectionEnd;
+    const selected = value.slice(start, end);
+
+    if (selected) {
+      const newValue = value.slice(0, start) + "[" + selected + "](url)" + value.slice(end);
+      onChange(newValue);
+      requestAnimationFrame(() => {
+        // Select "url"
+        ta.selectionStart = start + selected.length + 3;
+        ta.selectionEnd = start + selected.length + 6;
+        ta.focus();
+      });
+    } else {
+      const newValue = value.slice(0, start) + "[Linktext](url)" + value.slice(end);
+      onChange(newValue);
+      requestAnimationFrame(() => {
+        // Select "Linktext"
+        ta.selectionStart = start + 1;
+        ta.selectionEnd = start + 9;
+        ta.focus();
+      });
+    }
+  }, [value, onChange]);
+
   // ─── Inline upload (drag/paste) ───
 
   async function handleInlineUpload(file: File) {
@@ -1750,6 +1839,18 @@ export function SlashEditor({
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    const mod = e.metaKey || e.ctrlKey;
+    if (mod && e.key === "b") {
+      e.preventDefault();
+      wrapSelection("**", "**", "fetter Text");
+      return;
+    }
+    if (mod && e.key === "i") {
+      e.preventDefault();
+      wrapSelection("*", "*", "kursiver Text");
+      return;
+    }
+
     if (!showMenu) return;
     if (e.key === "ArrowDown") {
       e.preventDefault();
@@ -1834,6 +1935,32 @@ export function SlashEditor({
               icon={Table}
               label="Tabelle"
               onClick={() => setModal("table")}
+            />
+            <div className="w-px h-5 bg-border/60 mx-1" />
+            <FormatButton
+              icon={Bold}
+              label="Fett (Ctrl+B)"
+              onMouseDown={() => wrapSelection("**", "**", "fetter Text")}
+            />
+            <FormatButton
+              icon={Italic}
+              label="Kursiv (Ctrl+I)"
+              onMouseDown={() => wrapSelection("*", "*", "kursiver Text")}
+            />
+            <FormatButton
+              icon={Strikethrough}
+              label="Durchgestrichen"
+              onMouseDown={() => wrapSelection("~~", "~~", "durchgestrichen")}
+            />
+            <FormatButton
+              icon={Code2}
+              label="Inline-Code"
+              onMouseDown={() => wrapSelection("`", "`", "code")}
+            />
+            <FormatButton
+              icon={Link}
+              label="Link"
+              onMouseDown={() => wrapLinkSelection()}
             />
             <div className="w-px h-5 bg-border/60 mx-1" />
           </>
@@ -2059,6 +2186,30 @@ function ToolbarButton({
     >
       <Icon className="w-4 h-4" />
       <span className="hidden sm:inline">{label}</span>
+    </button>
+  );
+}
+
+function FormatButton({
+  icon: Icon,
+  label,
+  onMouseDown,
+}: {
+  icon: LucideIcon;
+  label: string;
+  onMouseDown: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onMouseDown={(e) => {
+        e.preventDefault();
+        onMouseDown();
+      }}
+      className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+      title={label}
+    >
+      <Icon className="w-4 h-4" />
     </button>
   );
 }

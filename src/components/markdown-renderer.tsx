@@ -4,8 +4,11 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
+import rehypeRaw from "rehype-raw";
 import "katex/dist/katex.min.css";
-import { Callout, Accordion, Quiz, BildBlock, DemoBlock, HtmlDemoBlock } from "./content-blocks";
+import { Callout, Accordion, Quiz, BildBlock, DemoBlock, HtmlDemoBlock, GlossarTooltip } from "./content-blocks";
+
+export type GlossaryEntry = { term: string; definition: string };
 
 type BildConfig = {
   src: string;
@@ -213,7 +216,28 @@ function parseContent(raw: string): Block[] {
   return blocks;
 }
 
-export function MarkdownRenderer({ content }: { content: string }) {
+function preprocessGlossar(text: string, glossary: GlossaryEntry[]): string {
+  if (!glossary.length) return text;
+  return text.replace(/::glossar\[(.+?)\]/g, (_match, term: string) => {
+    const entry = glossary.find(
+      (g) => g.term.toLowerCase() === term.toLowerCase()
+    );
+    if (!entry) return term;
+    const safeDef = entry.definition
+      .replace(/&/g, "&amp;")
+      .replace(/"/g, "&quot;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+    const safeTerm = entry.term
+      .replace(/&/g, "&amp;")
+      .replace(/"/g, "&quot;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+    return `<glossar term="${safeTerm}" definition="${safeDef}">${safeTerm}</glossar>`;
+  });
+}
+
+export function MarkdownRenderer({ content, glossary = [] }: { content: string; glossary?: GlossaryEntry[] }) {
   const blocks = parseContent(content);
 
   return (
@@ -251,18 +275,19 @@ export function MarkdownRenderer({ content }: { content: string }) {
           case "htmldemo":
             return <HtmlDemoBlock key={i} html={block.html} css={block.css} js={block.js} height={block.height} title={block.title} />;
           case "markdown":
-            return <MarkdownBlock key={i} content={block.content} />;
+            return <MarkdownBlock key={i} content={block.content} glossary={glossary} />;
         }
       })}
     </div>
   );
 }
 
-function MarkdownBlock({ content }: { content: string }) {
+function MarkdownBlock({ content, glossary = [] }: { content: string; glossary?: GlossaryEntry[] }) {
+  const processed = preprocessGlossar(content, glossary);
   return (
     <ReactMarkdown
       remarkPlugins={[remarkGfm, remarkMath]}
-      rehypePlugins={[rehypeKatex]}
+      rehypePlugins={[rehypeRaw, rehypeKatex]}
       components={{
         h1: ({ children }) => (
           <h1 className="text-3xl font-bold mt-8 mb-4 text-foreground">
@@ -365,9 +390,13 @@ function MarkdownBlock({ content }: { content: string }) {
             className="rounded-xl my-4 shadow-sm max-w-full"
           />
         ),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ...({ glossar: ({ term, definition, children }: any) => (
+          <GlossarTooltip term={term || children} definition={definition || ""} />
+        ) } as any),
       }}
     >
-      {content}
+      {processed}
     </ReactMarkdown>
   );
 }
