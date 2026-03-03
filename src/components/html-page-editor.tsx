@@ -48,30 +48,62 @@ function formatFileSize(bytes: number): string {
 }
 
 // ─── Base CSS – wird automatisch in jeden HTML-Beitrag injiziert ───
+// Farben und Stil stimmen exakt mit der PMT-Lernplattform überein.
 // User-eigene <style>-Tags überschreiben diese Regeln.
 export const BASE_CSS = `
+:root {
+  --primary:        #ea580c;
+  --primary-hover:  #c2410c;
+  --primary-light:  #fff7ed;
+  --primary-border: #fed7aa;
+  --bg:             #fafaf8;
+  --surface:        #ffffff;
+  --text:           #1e1b2e;
+  --text-muted:     #6b7280;
+  --border:         #e8e4df;
+  --accent-bg:      #f5f0ea;
+  --success:        #16a34a;
+  --success-light:  #f0fdf4;
+  --warning:        #d97706;
+  --warning-light:  #fffbeb;
+  --danger:         #dc2626;
+  --danger-light:   #fef2f2;
+  --info:           #2563eb;
+  --info-light:     #eff6ff;
+  --radius:         0.75rem;
+  --radius-sm:      0.5rem;
+  --shadow:         0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
+  --shadow-md:      0 4px 12px rgba(0,0,0,.10), 0 2px 4px rgba(0,0,0,.06);
+}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{
   font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-  font-size:16px;line-height:1.6;color:#1e293b;background:#fff;padding:1.5rem
+  font-size:16px;line-height:1.6;color:var(--text);background:var(--bg);padding:1.5rem
 }
 @media(max-width:640px){body{padding:1rem;font-size:15px}}
-h1,h2,h3,h4,h5,h6{line-height:1.3;font-weight:700;margin-bottom:.5em;margin-top:1.5em;color:#0f172a}
+h1,h2,h3,h4,h5,h6{line-height:1.3;font-weight:700;color:var(--text);margin-bottom:.5em;margin-top:1.5em}
 h1:first-child,h2:first-child,h3:first-child,h4:first-child{margin-top:0}
 h1{font-size:2rem}h2{font-size:1.5rem}h3{font-size:1.25rem}h4{font-size:1.1rem}
 p{margin-bottom:1em}
 ul,ol{margin-bottom:1em;padding-left:1.5em}li{margin-bottom:.25em}
-table{width:100%;border-collapse:collapse;margin-bottom:1em}
-th,td{border:1px solid #e2e8f0;padding:.5em .75em;text-align:left}
-th{background:#f8fafc;font-weight:600}
-img{max-width:100%;height:auto;border-radius:.5rem}
-button{cursor:pointer;font-family:inherit;border-radius:.375rem;padding:.5em 1em;border:none;background:#3b82f6;color:#fff;font-size:.875rem;font-weight:500;transition:opacity .15s}
-button:hover{opacity:.85}
-input,select,textarea{font-family:inherit;font-size:1rem;border:1px solid #cbd5e1;border-radius:.375rem;padding:.5em .75em;width:100%;box-sizing:border-box;margin-bottom:.5em}
-a{color:#3b82f6;text-decoration:underline}
-code{font-family:monospace;background:#f1f5f9;padding:.1em .4em;border-radius:.25rem;font-size:.875em}
-pre{background:#1e293b;color:#e2e8f0;padding:1em;border-radius:.5rem;overflow-x:auto;margin-bottom:1em}
+table{width:100%;border-collapse:collapse;margin-bottom:1em;border-radius:var(--radius-sm);overflow:hidden}
+th,td{border:1px solid var(--border);padding:.6em .85em;text-align:left}
+th{background:var(--accent-bg);font-weight:600;color:var(--text)}
+img{max-width:100%;height:auto;border-radius:var(--radius-sm)}
+a{color:var(--primary);text-decoration:underline;text-underline-offset:2px}
+a:hover{color:var(--primary-hover)}
+code{font-family:monospace;background:var(--accent-bg);padding:.1em .4em;border-radius:.25rem;font-size:.875em}
+pre{background:#1e1b2e;color:#e2e8f0;padding:1em;border-radius:var(--radius-sm);overflow-x:auto;margin-bottom:1em}
 pre code{background:none;padding:0;color:inherit}
+button{cursor:pointer;font-family:inherit;border-radius:var(--radius-sm);padding:.5em 1.25em;border:none;background:var(--primary);color:#fff;font-size:.875rem;font-weight:600;transition:background .15s;display:inline-flex;align-items:center;gap:.4em}
+button:hover{background:var(--primary-hover)}
+button.secondary{background:var(--surface);color:var(--text);border:1px solid var(--border)}
+button.secondary:hover{background:var(--accent-bg)}
+button.ghost{background:transparent;color:var(--primary);border:1px solid var(--primary-border)}
+button.ghost:hover{background:var(--primary-light)}
+input,select,textarea{font-family:inherit;font-size:1rem;border:1px solid var(--border);border-radius:var(--radius-sm);padding:.5em .75em;width:100%;box-sizing:border-box;background:var(--surface);color:var(--text);margin-bottom:.5em;transition:border-color .15s}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary)}
+label{font-weight:500;font-size:.875rem;color:var(--text);margin-bottom:.25em;display:block}
 `.trim();
 
 // ─── Auto-Resize Script – meldet Höhe an Parent-Seite ───
@@ -148,28 +180,178 @@ function extractUserStyle(html: string): string {
   return match ? match[1].trim() : "";
 }
 
-// ─── KI-Prompt generieren (Base-CSS + User-Style + Medien-Hinweis) ───
+// ─── KI-Prompt generieren (Design-System + Base-CSS + User-Style + Snippets) ───
 function generateHtmlAIPrompt(userStyle: string): string {
-  return `Du erstellst HTML-Inhalte für eine Lernplattform für Auszubildende zum Packmitteltechnologen.
+  return `Du erstellst HTML-Lernseiten für die PMT Lernplattform – eine Ausbildungsplattform für Packmitteltechnologen.
 
 # AUSGABEFORMAT
 
 Gib AUSSCHLIESSLICH vollständiges, valides HTML zurück. Kein Markdown, keine Erklärungen, kein Code-Fence-Wrapper (keine \`\`\`html). Der Code wird 1:1 in den Editor eingefügt.
 Nutze immer die vollständige Dokumentstruktur: <!DOCTYPE html> ... </html>
 
-# VORHANDENES BASE-CSS (wird automatisch geladen – nicht wiederholen)
+# VISUELLES LEITBILD
 
-Das folgende CSS ist in jede Seite bereits eingebunden. Du musst es NICHT nochmal definieren, kannst es aber mit eigenem <style>-Tag überschreiben:
+Die Platform hat einen **warmen, klaren, professionellen** Stil:
+- Hintergrund: Off-White (#fafaf8) – kein reines Weiß, kein Grau
+- Akzentfarbe: **Orange (#ea580c)** – für Buttons, Highlights, interaktive Elemente
+- Typografie: System-UI, sauber, gut lesbar
+- Ecken: abgerundet (border-radius 0.5–0.75rem)
+- Schatten: dezent (keine harten Drop-Shadows)
+- Keine bunten Verläufe, keine grellen Farben – ruhig und fokussiert
 
+# CSS-VARIABLEN (bereits geladen – direkt verwenden)
+
+\`\`\`
+--primary        #ea580c  → Buttons, Links, aktive Elemente, Überschrift-Akzente
+--primary-hover  #c2410c  → Hover-Zustand für Orange-Elemente
+--primary-light  #fff7ed  → Heller Orange-Hintergrund für Highlights
+--primary-border #fed7aa  → Rahmen für orange Boxen
+--bg             #fafaf8  → Seitenhintergrund
+--surface        #ffffff  → Karten, Panels, Inputs
+--text           #1e1b2e  → Haupttext
+--text-muted     #6b7280  → Sekundärtext, Labels, Beschreibungen
+--border         #e8e4df  → Rahmenfarbe
+--accent-bg      #f5f0ea  → Warmer Hintergrund für Tabellen-Header, neutrale Boxen
+--success        #16a34a  → Richtig / Bestätigung
+--success-light  #f0fdf4  → Hintergrund für Erfolgs-Boxen
+--warning        #d97706  → Achtung / Hinweis
+--warning-light  #fffbeb  → Hintergrund für Warnungs-Boxen
+--danger         #dc2626  → Fehler / Falsch
+--danger-light   #fef2f2  → Hintergrund für Fehler-Boxen
+--info           #2563eb  → Information
+--info-light     #eff6ff  → Hintergrund für Info-Boxen
+--radius         0.75rem  → Standard border-radius
+--radius-sm      0.5rem   → Kleinere Elemente
+--shadow         subtle box-shadow für Cards
+--shadow-md      mittlerer box-shadow für Modals/Popups
+\`\`\`
+
+# FERTIGE KOMPONENTEN-SNIPPETS
+
+Nutze diese Vorlagen direkt – sie passen exakt zum Platform-Design:
+
+## Karte
+\`\`\`html
+<div class="card">
+  <h3>Titel</h3>
+  <p>Inhalt...</p>
+</div>
+\`\`\`
 \`\`\`css
-${BASE_CSS}
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; box-shadow: var(--shadow); }
+\`\`\`
+
+## Farbige Info-Boxen (Merke / Tipp / Warnung / Info)
+\`\`\`html
+<div class="box box-orange">📌 Merke: Wichtiger Hinweis hier.</div>
+<div class="box box-green">✅ Richtig: Erklärung hier.</div>
+<div class="box box-yellow">⚠️ Achtung: Warnung hier.</div>
+<div class="box box-blue">ℹ️ Info: Zusatzwissen hier.</div>
+\`\`\`
+\`\`\`css
+.box { padding: .875rem 1.125rem; border-radius: var(--radius-sm); border-left: 4px solid; margin-bottom: 1rem; font-size: .9375rem; }
+.box-orange { background: var(--primary-light); border-color: var(--primary); color: #7c2d12; }
+.box-green  { background: var(--success-light); border-color: var(--success); color: #14532d; }
+.box-yellow { background: var(--warning-light); border-color: var(--warning); color: #78350f; }
+.box-blue   { background: var(--info-light);    border-color: var(--info);    color: #1e3a8a; }
+\`\`\`
+
+## Badge / Tag
+\`\`\`html
+<span class="badge">Text</span>
+<span class="badge badge-orange">Neu</span>
+\`\`\`
+\`\`\`css
+.badge { display:inline-block; padding:.2em .65em; border-radius:999px; font-size:.75rem; font-weight:600; background:var(--accent-bg); color:var(--text-muted); }
+.badge-orange { background:var(--primary-light); color:var(--primary); }
+\`\`\`
+
+## Aufklappbare Sektion (Accordion)
+\`\`\`html
+<details class="accordion">
+  <summary>Frage oder Titel</summary>
+  <div class="accordion-body">Inhalt hier...</div>
+</details>
+\`\`\`
+\`\`\`css
+.accordion { border:1px solid var(--border); border-radius:var(--radius-sm); margin-bottom:.5rem; overflow:hidden; }
+.accordion summary { padding:.875rem 1rem; cursor:pointer; font-weight:600; background:var(--surface); list-style:none; display:flex; justify-content:space-between; align-items:center; }
+.accordion summary::-webkit-details-marker { display:none; }
+.accordion summary::after { content:"＋"; color:var(--primary); font-size:1.1rem; }
+.accordion[open] summary::after { content:"－"; }
+.accordion-body { padding:1rem; background:var(--bg); border-top:1px solid var(--border); }
+\`\`\`
+
+## Tabs
+\`\`\`html
+<div class="tabs">
+  <button class="tab active" onclick="showTab(this,'t1')">Tab 1</button>
+  <button class="tab" onclick="showTab(this,'t2')">Tab 2</button>
+</div>
+<div id="t1" class="tab-panel">Inhalt Tab 1</div>
+<div id="t2" class="tab-panel" hidden>Inhalt Tab 2</div>
+\`\`\`
+\`\`\`css
+.tabs { display:flex; gap:.25rem; border-bottom:2px solid var(--border); margin-bottom:1rem; }
+.tab { background:none; color:var(--text-muted); border:none; border-bottom:2px solid transparent; border-radius:0; padding:.5rem 1rem; font-size:.9rem; margin-bottom:-2px; }
+.tab.active { color:var(--primary); border-bottom-color:var(--primary); font-weight:600; }
+.tab:hover { background:var(--accent-bg); color:var(--text); }
+\`\`\`
+\`\`\`js
+function showTab(btn, id) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.hidden = true);
+  btn.classList.add('active');
+  document.getElementById(id).hidden = false;
+}
+\`\`\`
+
+## Fortschrittsbalken
+\`\`\`html
+<div class="progress"><div class="progress-bar" style="width:70%"></div></div>
+\`\`\`
+\`\`\`css
+.progress { background:var(--accent-bg); border-radius:999px; height:.75rem; overflow:hidden; }
+.progress-bar { height:100%; background:var(--primary); border-radius:999px; transition:width .4s ease; }
+\`\`\`
+
+## Quiz-Frage (Multiple Choice)
+\`\`\`html
+<div class="quiz">
+  <p class="quiz-q">Frage hier?</p>
+  <button class="quiz-opt" onclick="answer(this,false)">Falsche Antwort</button>
+  <button class="quiz-opt" onclick="answer(this,true)">Richtige Antwort</button>
+  <div class="quiz-feedback" hidden></div>
+</div>
+\`\`\`
+\`\`\`css
+.quiz { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:1.25rem; }
+.quiz-q { font-weight:600; margin-bottom:1rem; }
+.quiz-opt { display:block; width:100%; text-align:left; margin-bottom:.5rem; background:var(--bg); color:var(--text); border:1px solid var(--border); border-radius:var(--radius-sm); padding:.6rem 1rem; font-size:.9375rem; }
+.quiz-opt:hover { border-color:var(--primary); background:var(--primary-light); }
+.quiz-opt.correct { background:var(--success-light); border-color:var(--success); color:#14532d; }
+.quiz-opt.wrong { background:var(--danger-light); border-color:var(--danger); color:#7f1d1d; }
+.quiz-feedback { margin-top:.75rem; padding:.75rem 1rem; border-radius:var(--radius-sm); font-size:.9rem; }
+\`\`\`
+\`\`\`js
+function answer(btn, correct) {
+  const quiz = btn.closest('.quiz');
+  quiz.querySelectorAll('.quiz-opt').forEach(b => b.disabled = true);
+  btn.classList.add(correct ? 'correct' : 'wrong');
+  const fb = quiz.querySelector('.quiz-feedback');
+  fb.hidden = false;
+  fb.style.cssText = correct
+    ? 'background:var(--success-light);color:#14532d;border-left:4px solid var(--success)'
+    : 'background:var(--danger-light);color:#7f1d1d;border-left:4px solid var(--danger)';
+  fb.textContent = correct ? '✅ Richtig!' : '❌ Leider falsch. Versuche es nochmal.';
+}
 \`\`\`
 ${
   userStyle
     ? `
 # AKTUELLER STIL DIESES BEITRAGS
 
-Passe neue Inhalte an diesen bestehenden Stil an oder ergänze ihn konsistent:
+Passe neue Inhalte an diesen bestehenden Stil an und ergänze ihn konsistent:
 
 \`\`\`css
 ${userStyle}
@@ -179,25 +361,28 @@ ${userStyle}
 }
 # MEDIEN EINBINDEN
 
-Bilder und Videos aus der Medienbibliothek können direkt per Pfad eingebunden werden:
-- Bilder: <img src="/uploads/dateiname.jpg" alt="Beschreibung">
-- Videos: <video src="/uploads/dateiname.mp4" controls></video>
-Die konkreten Dateinamen erfährst du vom Nutzer oder lässt Platzhalter stehen.
+\`\`\`html
+<img src="/uploads/dateiname.jpg" alt="Beschreibung">
+<video src="/uploads/dateiname.mp4" controls style="max-width:100%;border-radius:var(--radius-sm)"></video>
+\`\`\`
+Konkrete Dateinamen vom Nutzer erfragen oder Platzhalter lassen.
 
-# VORGABEN
+# TECHNISCHE VORGABEN
 
-- Nutze das Base-CSS als Basis. Überschreibe oder ergänze im <style>-Tag nur was wirklich nötig ist.
-- Responsiv: Inhalte müssen auf Handy (320 px), Tablet (768 px) und Desktop (1280 px) gut aussehen.
-- Verwende CSS-Variablen oder Klassen für konsistente Farben und Abstände.
-- Interaktive Elemente (Buttons, Tabs, Animationen) sind erwünscht – sauber in vanilla JS.
-- Kein externes CSS-Framework (kein Bootstrap, kein Tailwind CDN), nur plain CSS.
-- Schreibe für Berufsschüler (16–20 Jahre): klare Sprache, kurze Sätze, aktive Ansprache ("Du").
-- Fachbegriffe aus der Packmitteltechnologie beim ersten Vorkommen kurz erklären.
-- Praxisbeispiele aus dem Berufsalltag eines Packmitteltechnologen einbauen.
+- Base-CSS ist bereits geladen → NUR überschreiben was wirklich nötig ist
+- Responsiv: funktioniert auf Handy (320 px), Tablet (768 px), Desktop (1280 px)
+- Kein externes Framework (kein Bootstrap, kein Tailwind CDN) – nur vanilla CSS/JS
+- Animationen und Interaktivität erwünscht – aber sparsam und zweckgebunden
+- Alle CSS-Klassen in einem einzigen <style>-Tag im <head>
+- JavaScript in einem einzigen <script>-Tag am Ende von <body>
 
-# BEISPIEL-ANFRAGE
+# INHALTS-VORGABEN
 
-"Erstelle eine interaktive Übersicht der Wellpappenarten mit aufklappbaren Karten und farbiger Hervorhebung."`;
+- Zielgruppe: Berufsschüler, 16–20 Jahre, Ausbildung Packmitteltechnologe
+- Sprache: klar, aktiv, direkte Ansprache ("Du"), kurze Sätze
+- Fachbegriffe beim ersten Auftreten in Klammern erklären
+- Praxisbeispiele aus dem Berufsalltag einbauen
+- Interaktive Elemente (Quiz, Tabs, Akkordeon) bevorzugen gegenüber reinem Text`;
 }
 
 // ─── Media-Modal: Bibliothek + Direkt-Upload ───
