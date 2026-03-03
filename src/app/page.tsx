@@ -68,15 +68,6 @@ export default async function HomePage() {
             </p>
             <SearchBar />
           </div>
-
-          {/* Stats */}
-          <div className="flex items-center justify-center gap-6 text-sm text-muted-foreground mt-8">
-            <span className="font-medium">{postCount} Beiträge</span>
-            <span className="text-border">·</span>
-            <span className="font-medium">{categoryCount} Kategorien</span>
-            <span className="text-border">·</span>
-            <span className="font-medium">{glossaryCount} Glossareinträge</span>
-          </div>
         </div>
       </section>
 
@@ -132,9 +123,16 @@ export default async function HomePage() {
         </section>
       )}
 
-      {/* Footer */}
+      {/* Stats + Footer */}
       <footer className="border-t border-border/60 mt-4 py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-2">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-3">
+          <div className="flex items-center justify-center gap-4 sm:gap-6 text-sm text-muted-foreground">
+            <span className="font-medium">{postCount} Beiträge</span>
+            <span className="text-border/60">·</span>
+            <span className="font-medium">{categoryCount} Kategorien</span>
+            <span className="text-border/60">·</span>
+            <span className="font-medium">{glossaryCount} Glossareinträge</span>
+          </div>
           <p className="text-xs text-muted-foreground/70">
             Inhalte erstellt &amp; moderiert von FRI &mdash; kein Anspruch auf Vollständigkeit oder Richtigkeit.
           </p>
