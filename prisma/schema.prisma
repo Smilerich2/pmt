@@ -65,3 +65,16 @@ model PageView {
 
   @@unique([path, date])
 }
+
+model Feedback {
+  id        String   @id @default(cuid())
+  type      String   // "feedback" | "fehler" | "wunsch"
+  message   String
+  page      String?
+  createdAt DateTime @default(now())
+}
+
+model Setting {
+  key   String @id
+  value String
+}

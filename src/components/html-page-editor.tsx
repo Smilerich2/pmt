@@ -182,7 +182,7 @@ function extractUserStyle(html: string): string {
 
 // ─── KI-Prompt generieren (Design-System + Base-CSS + User-Style + Snippets) ───
 function generateHtmlAIPrompt(userStyle: string): string {
-  return `Du erstellst HTML-Lernseiten für die PMT Lernplattform – eine Ausbildungsplattform für Packmitteltechnologen.
+  return `Du erstellst HTML-Lernseiten für die PMT LernHub – eine Ausbildungsplattform für Packmitteltechnologen.
 
 # AUSGABEFORMAT
 

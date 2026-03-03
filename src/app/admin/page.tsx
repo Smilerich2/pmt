@@ -8,6 +8,7 @@ import {
   Eye,
   EyeOff,
   ImageIcon,
+  MessageSquare,
   Users,
   TrendingUp,
   HardDrive,
@@ -96,6 +97,7 @@ export default async function AdminDashboard() {
     viewsTotal,
     viewsToday,
     topPages,
+    feedbackCount,
     recentPosts,
     categories,
   ] = await Promise.all([
@@ -111,6 +113,7 @@ export default async function AdminDashboard() {
       orderBy: { _sum: { count: "desc" } },
       take: 5,
     }),
+    prisma.feedback.count(),
     prisma.post.findMany({
       orderBy: { updatedAt: "desc" },
       take: 5,
@@ -140,6 +143,7 @@ export default async function AdminDashboard() {
     { label: "Veröffentlicht", value: publishedCount, icon: Eye, href: "/admin/posts" },
     { label: "Entwürfe", value: draftCount, icon: EyeOff, href: "/admin/posts" },
     { label: "Medien", value: mediaFileCount, icon: ImageIcon, href: "/admin/media" },
+    { label: "Feedback", value: feedbackCount, icon: MessageSquare, href: "/admin/feedback" },
   ];
 
   return (
@@ -147,7 +151,7 @@ export default async function AdminDashboard() {
       <h1 className="text-2xl font-bold text-foreground mb-6">Dashboard</h1>
 
       {/* Stats row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 mb-6">
         {stats.map((stat) => (
           <Link
             key={stat.label}

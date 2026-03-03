@@ -51,7 +51,7 @@ export default function LoginPage() {
             <GraduationCap className="w-9 h-9 text-primary-foreground" />
           </div>
           <h1 className="text-2xl font-bold text-foreground">
-            PMT Lernplattform
+            PMT LernHub
           </h1>
           <p className="text-muted-foreground mt-1">
             Bitte gib dein Passwort ein

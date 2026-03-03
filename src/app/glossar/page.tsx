@@ -38,7 +38,7 @@ export default async function GlossarPage() {
 
       <footer className="border-t border-border/60 mt-12 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm text-muted-foreground">
-          PMT Lernplattform &mdash; Packmitteltechnologie
+          PMT LernHub &mdash; Packmitteltechnologie
         </div>
       </footer>
     </div>

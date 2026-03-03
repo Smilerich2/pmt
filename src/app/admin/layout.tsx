@@ -11,6 +11,7 @@ import {
   ImageIcon,
   BookA,
   Download,
+  MessageSquare,
   PanelLeftClose,
   PanelLeft,
 } from "lucide-react";
@@ -22,6 +23,7 @@ const navItems = [
   { href: "/admin/posts", label: "Beiträge", icon: FileText },
   { href: "/admin/media", label: "Medien", icon: ImageIcon },
   { href: "/admin/glossary", label: "Glossar", icon: BookA },
+  { href: "/admin/feedback", label: "Feedback", icon: MessageSquare },
   { href: "/admin/export", label: "Export", icon: Download },
 ];
 

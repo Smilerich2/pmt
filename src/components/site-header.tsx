@@ -17,7 +17,7 @@ export async function SiteHeader() {
           </div>
           <div>
             <h1 className="text-lg font-bold text-foreground leading-tight">
-              PMT Lernplattform
+              PMT LernHub
             </h1>
             <p className="text-xs text-muted-foreground leading-tight">
               Packmitteltechnologie

@@ -1,8 +1,19 @@
 import { prisma } from "@/lib/prisma";
 import { SiteHeader } from "@/components/site-header";
+import { SearchBar } from "@/components/search-bar";
+import { FeedbackButton } from "@/components/feedback-button";
+import { ScrollToTop } from "@/components/scroll-to-top";
 
 export const dynamic = "force-dynamic";
 import { CategoryCard } from "@/components/category-card";
+import { FileText, Video, Globe } from "lucide-react";
+import Link from "next/link";
+
+const typeConfig: Record<string, { label: string; icon: typeof FileText; color: string }> = {
+  text: { label: "Text", icon: FileText, color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" },
+  video: { label: "Video", icon: Video, color: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400" },
+  webpage: { label: "Webseite", icon: Globe, color: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400" },
+};
 
 export default async function HomePage() {
   const today = new Date().toISOString().slice(0, 10);
@@ -12,32 +23,66 @@ export default async function HomePage() {
     create: { path: "/", date: today, count: 1 },
   }).catch(() => {});
 
-  const categories = await prisma.category.findMany({
-    where: { parentId: null },
-    include: {
-      _count: { select: { posts: true, children: true } },
-    },
-    orderBy: { position: "asc" },
-  });
+  const [categories, recentPosts, postCount, categoryCount, glossaryCount] = await Promise.all([
+    prisma.category.findMany({
+      where: { parentId: null },
+      include: {
+        _count: { select: { posts: true, children: true } },
+      },
+      orderBy: { position: "asc" },
+    }),
+    prisma.post.findMany({
+      where: { published: true },
+      orderBy: { createdAt: "desc" },
+      take: 4,
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        type: true,
+        description: true,
+        createdAt: true,
+        category: { select: { title: true } },
+      },
+    }),
+    prisma.post.count({ where: { published: true } }),
+    prisma.category.count(),
+    prisma.glossaryTerm.count(),
+  ]);
 
   return (
     <div className="min-h-screen">
       <SiteHeader />
 
       {/* Hero Section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20">
-        <div className="text-center max-w-3xl mx-auto mb-12">
-          <h2 className="text-3xl md:text-5xl font-bold text-foreground mb-4">
-            Willkommen zur{" "}
-            <span className="text-primary">Lernplattform</span>
-          </h2>
-          <p className="text-lg text-muted-foreground">
-            Dein Begleiter durch die Ausbildung zum Packmitteltechnologen.
-            Wähle ein Themengebiet und starte mit dem Lernen.
-          </p>
-        </div>
+      <section className="bg-gradient-to-br from-primary/15 via-accent/30 to-background py-12 md:py-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center max-w-3xl mx-auto mb-8">
+            <h2 className="text-3xl md:text-5xl font-bold text-foreground mb-4">
+              Willkommen im{" "}
+              <span className="text-primary">LernHub</span>
+            </h2>
+            <p className="text-lg text-muted-foreground mb-8">
+              Dein Begleiter durch die Ausbildung zum Packmitteltechnologen.
+              Wähle ein Themengebiet und starte mit dem Lernen.
+            </p>
+            <SearchBar />
+          </div>
 
-        {/* Category Grid */}
+          {/* Stats */}
+          <div className="flex items-center justify-center gap-6 text-sm text-muted-foreground mt-8">
+            <span className="font-medium">{postCount} Beiträge</span>
+            <span className="text-border">·</span>
+            <span className="font-medium">{categoryCount} Kategorien</span>
+            <span className="text-border">·</span>
+            <span className="font-medium">{glossaryCount} Glossareinträge</span>
+          </div>
+        </div>
+      </section>
+
+      {/* Category Grid */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <h3 className="text-xl font-bold text-foreground mb-6">Themengebiete</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {categories.map((category) => (
             <CategoryCard
@@ -53,11 +98,54 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <footer className="border-t border-border/60 mt-12 py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm text-muted-foreground">
-          PMT Lernplattform &mdash; Packmitteltechnologie
+      {/* Recent Posts */}
+      {recentPosts.length > 0 && (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
+          <h3 className="text-xl font-bold text-foreground mb-6">Zuletzt hinzugefügt</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {recentPosts.map((post) => {
+              const tc = typeConfig[post.type] || typeConfig.text;
+              const Icon = tc.icon;
+              return (
+                <Link
+                  key={post.id}
+                  href={`/post/${post.slug}`}
+                  className="group p-4 rounded-xl bg-card border border-border/60 hover:border-primary/30 hover:shadow-md transition-all duration-200"
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium ${tc.color}`}>
+                      <Icon className="w-3 h-3" />
+                      {tc.label}
+                    </span>
+                  </div>
+                  <h4 className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-2 mb-1">
+                    {post.title}
+                  </h4>
+                  <p className="text-xs text-muted-foreground">{post.category.title}</p>
+                  <p className="text-xs text-muted-foreground/60 mt-1">
+                    {new Date(post.createdAt).toLocaleDateString("de-DE")}
+                  </p>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* Footer */}
+      <footer className="border-t border-border/60 mt-4 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-2">
+          <p className="text-xs text-muted-foreground/70">
+            Inhalte erstellt &amp; moderiert von FRI &mdash; kein Anspruch auf Vollständigkeit oder Richtigkeit.
+          </p>
+          <p className="text-sm text-muted-foreground">
+            PMT LernHub &mdash; Packmitteltechnologie
+          </p>
         </div>
       </footer>
+
+      <FeedbackButton />
+      <ScrollToTop />
     </div>
   );
 }

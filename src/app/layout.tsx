@@ -8,8 +8,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "PMT Lernplattform",
-  description: "Lernplattform für Packmitteltechnologen",
+  title: "PMT LernHub",
+  description: "LernHub für Packmitteltechnologen",
 };
 
 export default function RootLayout({
