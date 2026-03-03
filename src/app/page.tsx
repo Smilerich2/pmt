@@ -5,6 +5,13 @@ export const dynamic = "force-dynamic";
 import { CategoryCard } from "@/components/category-card";
 
 export default async function HomePage() {
+  const today = new Date().toISOString().slice(0, 10);
+  await prisma.pageView.upsert({
+    where: { path_date: { path: "/", date: today } },
+    update: { count: { increment: 1 } },
+    create: { path: "/", date: today, count: 1 },
+  }).catch(() => {});
+
   const categories = await prisma.category.findMany({
     where: { parentId: null },
     include: {

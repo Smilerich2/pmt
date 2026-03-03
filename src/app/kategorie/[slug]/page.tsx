@@ -23,6 +23,13 @@ export default async function KategorieSeite({
 }) {
   const { slug } = await params;
 
+  const today = new Date().toISOString().slice(0, 10);
+  await prisma.pageView.upsert({
+    where: { path_date: { path: `/kategorie/${slug}`, date: today } },
+    update: { count: { increment: 1 } },
+    create: { path: `/kategorie/${slug}`, date: today, count: 1 },
+  }).catch(() => {});
+
   const category = await prisma.category.findUnique({
     where: { slug },
     include: {

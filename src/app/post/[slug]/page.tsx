@@ -18,6 +18,13 @@ export default async function PostSeite({
 }) {
   const { slug } = await params;
 
+  const today = new Date().toISOString().slice(0, 10);
+  await prisma.pageView.upsert({
+    where: { path_date: { path: `/post/${slug}`, date: today } },
+    update: { count: { increment: 1 } },
+    create: { path: `/post/${slug}`, date: today, count: 1 },
+  }).catch(() => {});
+
   const post = await prisma.post.findUnique({
     where: { slug },
     include: {
