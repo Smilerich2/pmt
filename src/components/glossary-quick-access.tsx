@@ -90,7 +90,7 @@ export function GlossaryQuickAccess() {
                 placeholder="Begriff suchen…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-9 pr-8 py-1.5 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                className="w-full pl-9 pr-8 py-1.5 rounded-lg border border-border bg-background text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
               />
               {search && (
                 <button
