@@ -8,16 +8,23 @@ const feedbackTypes = [
   { value: "feedback", label: "Feedback", color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" },
   { value: "fehler", label: "Fehler melden", color: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" },
   { value: "wunsch", label: "Wunsch", color: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" },
+  { value: "glossar", label: "Glossar", color: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" },
 ];
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function FeedbackButton() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [type, setType] = useState("feedback");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
+  const [website, setWebsite] = useState(""); // honeypot
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [hidden, setHidden] = useState(false);
+  const [error, setError] = useState("");
 
   // Hide on admin and login pages
   const isHiddenRoute = pathname.startsWith("/admin") || pathname === "/login";
@@ -32,34 +39,68 @@ export function FeedbackButton() {
 
   if (isHiddenRoute || hidden) return null;
 
+  function validate(): string | null {
+    if (!name.trim()) return "Bitte gib deinen Namen ein.";
+    if (!email.trim()) return "Bitte gib deine E-Mail-Adresse ein.";
+    if (!EMAIL_REGEX.test(email.trim())) return "Bitte gib eine gültige E-Mail-Adresse ein.";
+    if (!message.trim()) return "Bitte gib eine Nachricht ein.";
+    if (message.trim().length < 10) return "Nachricht muss mindestens 10 Zeichen lang sein.";
+    return null;
+  }
+
   async function handleSubmit() {
-    if (!message.trim()) return;
+    setError("");
+    const validationError = validate();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
     setSending(true);
     try {
       const res = await fetch("/api/feedback", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type, message: message.trim(), page: pathname }),
+        body: JSON.stringify({
+          type,
+          name: name.trim(),
+          email: email.trim(),
+          message: message.trim(),
+          page: pathname,
+          website,
+        }),
       });
       if (res.status === 403) {
         setHidden(true);
         return;
       }
-      if (res.ok) {
-        setSent(true);
-        setTimeout(() => {
-          setOpen(false);
-          setSent(false);
-          setMessage("");
-          setType("feedback");
-        }, 1500);
+      if (res.status === 429) {
+        setError("Zu viele Anfragen. Bitte warte etwas.");
+        return;
       }
+      if (!res.ok) {
+        const data = await res.json();
+        setError(data.error || "Fehler beim Senden.");
+        return;
+      }
+      setSent(true);
+      setTimeout(() => {
+        setOpen(false);
+        setSent(false);
+        setMessage("");
+        setType("feedback");
+        setError("");
+      }, 1500);
     } catch {
-      // silently fail
+      setError("Fehler beim Senden.");
     } finally {
       setSending(false);
     }
   }
+
+  const placeholder = type === "glossar"
+    ? "Begriff und Definition vorschlagen..."
+    : "Beschreibe dein Feedback...";
 
   return (
     <>
@@ -93,7 +134,7 @@ export function FeedbackButton() {
               <>
                 <h3 className="text-lg font-bold text-foreground mb-4">Feedback geben</h3>
 
-                <div className="flex gap-2 mb-4">
+                <div className="flex flex-wrap gap-2 mb-4">
                   {feedbackTypes.map((ft) => (
                     <button
                       key={ft.value}
@@ -109,13 +150,46 @@ export function FeedbackButton() {
                   ))}
                 </div>
 
+                <div className="space-y-3 mb-3">
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Name *"
+                    className="w-full rounded-xl border border-border/60 bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  />
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="E-Mail *"
+                    className="w-full rounded-xl border border-border/60 bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  />
+                </div>
+
+                {/* Honeypot field - invisible to users */}
+                <div className="absolute opacity-0 h-0 overflow-hidden" aria-hidden="true">
+                  <input
+                    type="text"
+                    name="website"
+                    value={website}
+                    onChange={(e) => setWebsite(e.target.value)}
+                    tabIndex={-1}
+                    autoComplete="off"
+                  />
+                </div>
+
                 <textarea
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
-                  placeholder="Beschreibe dein Feedback..."
+                  placeholder={placeholder}
                   rows={4}
                   className="w-full rounded-xl border border-border/60 bg-background p-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 resize-none"
                 />
+
+                {error && (
+                  <p className="text-xs text-red-500 mt-2">{error}</p>
+                )}
 
                 <div className="flex items-center justify-between mt-4">
                   <p className="text-xs text-muted-foreground">

@@ -68,7 +68,9 @@ model PageView {
 
 model Feedback {
   id        String   @id @default(cuid())
-  type      String   // "feedback" | "fehler" | "wunsch"
+  type      String   // "feedback" | "fehler" | "wunsch" | "glossar"
+  name      String
+  email     String
   message   String
   page      String?
   createdAt DateTime @default(now())
