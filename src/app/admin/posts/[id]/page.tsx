@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ImageUpload } from "@/components/image-upload";
 import { SlashEditor } from "@/components/slash-editor";
 import { HtmlPageEditor } from "@/components/html-page-editor";
+import { TagInput } from "@/components/tag-input";
 
 type Category = {
   id: string;
@@ -34,6 +35,7 @@ export default function EditPostPage() {
   const [postType, setPostType] = useState("text");
   const [editorType, setEditorType] = useState("MARKDOWN");
   const [duration, setDuration] = useState("");
+  const [tags, setTags] = useState("");
   const [published, setPublished] = useState(false);
 
   useEffect(() => {
@@ -49,6 +51,7 @@ export default function EditPostPage() {
       setPostType(post.type ?? "text");
       setEditorType(post.editorType === "HTML" ? "HTML" : "MARKDOWN");
       setDuration(post.duration ?? "");
+      setTags(post.tags ?? "");
       setPublished(post.published ?? false);
       setCategories(cats);
       setLoading(false);
@@ -78,6 +81,7 @@ export default function EditPostPage() {
           coverImage: coverImage || null,
           type: postType,
           duration: duration || null,
+          tags: tags || null,
           published,
         }),
       });
@@ -121,6 +125,7 @@ export default function EditPostPage() {
               id="title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
+              placeholder="z.B. Grundlagen der *Wellpappe*"
               required
             />
           </div>
@@ -152,6 +157,16 @@ export default function EditPostPage() {
             onChange={(e) => setDescription(e.target.value)}
             rows={2}
           />
+        </div>
+
+        <div className="space-y-2">
+          <Label>
+            Tags (optional){" "}
+            <span className="text-muted-foreground font-normal text-xs">
+              — Werden als Chips im Beitrag angezeigt
+            </span>
+          </Label>
+          <TagInput value={tags} onChange={setTags} />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

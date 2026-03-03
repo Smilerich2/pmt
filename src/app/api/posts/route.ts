@@ -65,6 +65,7 @@ export async function POST(request: NextRequest) {
       coverImage: body.coverImage || null,
       type: body.type || "text",
       duration: body.duration || null,
+      tags: body.tags || null,
       published: body.published ?? false,
       position: nextPosition,
     },

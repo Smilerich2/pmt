@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 export const dynamic = "force-dynamic";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Calendar, Clock, Tag, Pencil } from "lucide-react";
+import { ArrowLeft, Calendar, Clock, Pencil } from "lucide-react";
 import { MarkdownRenderer } from "@/components/markdown-renderer";
 import { HtmlPostViewer } from "@/components/html-post-viewer";
 import { SiteHeader } from "@/components/site-header";
@@ -55,7 +55,7 @@ export default async function PostSeite({
       <SiteHeader />
 
       {/* Hero */}
-      <div className="relative h-56 md:h-72">
+      <div className="relative h-auto min-h-56 md:min-h-72">
         {post.coverImage ? (
           post.coverImage.startsWith("linear-gradient") ? (
             <div
@@ -74,7 +74,7 @@ export default async function PostSeite({
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-black/20" />
 
-        <div className="relative h-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col justify-end pb-8">
+        <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col justify-end pb-8 pt-24 md:pt-32">
           {/* Breadcrumb */}
           <nav className="flex items-center gap-2 text-white/70 text-sm mb-3 flex-wrap">
             <Link href="/" className="hover:text-white transition-colors">
@@ -100,10 +100,9 @@ export default async function PostSeite({
             </Link>
           </nav>
 
+          {/* Accent Title */}
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl md:text-4xl font-bold text-white">
-              {post.title}
-            </h1>
+            <AccentTitle title={post.title} />
             {isAdmin && (
               <Link
                 href={`/admin/posts/${post.id}`}
@@ -114,47 +113,46 @@ export default async function PostSeite({
               </Link>
             )}
           </div>
+
+          {/* Description */}
+          {post.description && (
+            <p className="mt-3 text-white/80 text-base max-w-2xl">
+              {post.description}
+            </p>
+          )}
+
+          {/* Tags */}
+          {post.tags && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {post.tags.split(",").map((tag: string) => tag.trim()).filter(Boolean).map((tag: string, i: number) => (
+                <span
+                  key={i}
+                  className="bg-white/15 text-white text-xs px-2.5 py-1 rounded-full"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Meta */}
+          <div className="mt-3 flex items-center gap-4 text-white/60 text-sm">
+            <span className="flex items-center gap-1.5">
+              <Calendar className="w-3.5 h-3.5" />
+              {formattedDate}
+            </span>
+            {post.duration && (
+              <span className="flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5" />
+                {post.duration}
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
       {/* Content */}
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Back + Meta */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-          <Link
-            href={`/kategorie/${post.category.slug}`}
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-accent hover:bg-accent/80 text-sm font-medium text-foreground transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            {post.category.title}
-          </Link>
-
-          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-            <span className="flex items-center gap-1.5">
-              <Calendar className="w-4 h-4" />
-              {formattedDate}
-            </span>
-            {post.duration && (
-              <span className="flex items-center gap-1.5">
-                <Clock className="w-4 h-4" />
-                {post.duration}
-              </span>
-            )}
-            <span className="flex items-center gap-1.5">
-              <Tag className="w-4 h-4" />
-              {post.category.title}
-            </span>
-          </div>
-        </div>
-
-        {/* Description */}
-        {post.description && (
-          <div className="mb-8 p-4 rounded-xl bg-accent/50 border border-border/60">
-            <p className="text-muted-foreground leading-relaxed">
-              {post.description}
-            </p>
-          </div>
-        )}
 
         {/* Article Content */}
         {post.editorType === "HTML" ? (
@@ -196,6 +194,27 @@ export default async function PostSeite({
 
       <ScrollToTop />
     </div>
+  );
+}
+
+function AccentTitle({ title }: { title: string }) {
+  const parts = title.split(/(\*[^*]+\*)/g);
+  const hasAccent = parts.some((p) => p.startsWith("*") && p.endsWith("*"));
+
+  if (!hasAccent) {
+    return <h1 className="text-2xl md:text-4xl font-bold text-white">{title}</h1>;
+  }
+
+  return (
+    <h1 className="text-2xl md:text-4xl font-bold text-white">
+      {parts.map((part, i) =>
+        part.startsWith("*") && part.endsWith("*") ? (
+          <span key={i} className="text-primary">{part.slice(1, -1)}</span>
+        ) : (
+          <span key={i}>{part}</span>
+        )
+      )}
+    </h1>
   );
 }
 

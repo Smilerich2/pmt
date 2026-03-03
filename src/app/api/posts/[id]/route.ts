@@ -35,6 +35,7 @@ export async function PUT(
   if ("coverImage" in body) data.coverImage = body.coverImage || null;
   if ("type" in body) data.type = body.type || "text";
   if ("duration" in body) data.duration = body.duration || null;
+  if ("tags" in body) data.tags = body.tags || null;
   if ("published" in body) data.published = body.published ?? false;
 
   const post = await prisma.post.update({

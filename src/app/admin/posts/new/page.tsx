@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ImageUpload } from "@/components/image-upload";
 import { SlashEditor } from "@/components/slash-editor";
 import { HtmlPageEditor } from "@/components/html-page-editor";
+import { TagInput } from "@/components/tag-input";
 
 type Category = {
   id: string;
@@ -32,6 +33,7 @@ export default function NewPostPage() {
   const [postType, setPostType] = useState("text");
   const [editorType, setEditorType] = useState("MARKDOWN");
   const [duration, setDuration] = useState("");
+  const [tags, setTags] = useState("");
   const [published, setPublished] = useState(true);
 
   useEffect(() => {
@@ -64,6 +66,7 @@ export default function NewPostPage() {
           coverImage: coverImage || null,
           type: postType,
           duration: duration || null,
+          tags: tags || null,
           published,
         }),
       });
@@ -100,7 +103,7 @@ export default function NewPostPage() {
               id="title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Beitragstitel..."
+              placeholder="z.B. Grundlagen der *Wellpappe*"
               required
             />
           </div>
@@ -133,6 +136,16 @@ export default function NewPostPage() {
             placeholder="Kurze Zusammenfassung..."
             rows={2}
           />
+        </div>
+
+        <div className="space-y-2">
+          <Label>
+            Tags (optional){" "}
+            <span className="text-muted-foreground font-normal text-xs">
+              — Werden als Chips im Beitrag angezeigt
+            </span>
+          </Label>
+          <TagInput value={tags} onChange={setTags} />
         </div>
 
         {/* Cover & Typ */}
