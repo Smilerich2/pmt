@@ -9,9 +9,12 @@ export async function GET() {
   try {
     const files = await readdir(uploadDir);
 
-    // Fetch all posts to check usage
+    // Fetch all posts and categories to check usage
     const posts = await prisma.post.findMany({
       select: { id: true, title: true, content: true, coverImage: true },
+    });
+    const categories = await prisma.category.findMany({
+      select: { id: true, title: true, image: true },
     });
 
     const mediaFiles = await Promise.all(
@@ -24,8 +27,8 @@ export async function GET() {
           const isVideo = [".mp4", ".webm", ".mov"].includes(ext);
           const fileUrl = `/uploads/${f}`;
 
-          // Check which posts use this file
-          const usedIn = posts
+          // Check which posts use this file (in content or as cover image)
+          const usedInPosts = posts
             .filter(
               (p) =>
                 (p.content && p.content.includes(fileUrl)) ||
@@ -33,13 +36,18 @@ export async function GET() {
             )
             .map((p) => ({ id: p.id, title: p.title }));
 
+          // Check which categories use this file as their image
+          const usedInCategories = categories
+            .filter((c) => c.image && c.image.includes(fileUrl))
+            .map((c) => ({ id: c.id, title: `📁 ${c.title}` }));
+
           return {
             name: f,
             url: fileUrl,
             size: stats.size,
             type: isVideo ? "video" : "image",
             createdAt: stats.mtime.toISOString(),
-            usedIn,
+            usedIn: [...usedInPosts, ...usedInCategories],
           };
         })
     );
@@ -91,7 +99,7 @@ export async function PATCH(request: NextRequest) {
 
     await rename(oldPath, newPath);
 
-    // Update references in all posts
+    // Update references in all posts and categories
     const oldUrl = `/uploads/${safeOld}`;
     const newUrl = `/uploads/${safeNew}`;
 
@@ -116,7 +124,18 @@ export async function PATCH(request: NextRequest) {
       });
     }
 
-    return NextResponse.json({ success: true, newName: safeNew, updatedPosts: posts.length });
+    const cats = await prisma.category.findMany({
+      where: { image: { contains: oldUrl } },
+    });
+
+    for (const cat of cats) {
+      await prisma.category.update({
+        where: { id: cat.id },
+        data: { image: cat.image!.replaceAll(oldUrl, newUrl) },
+      });
+    }
+
+    return NextResponse.json({ success: true, newName: safeNew, updatedPosts: posts.length + cats.length });
   } catch {
     return NextResponse.json({ error: "Fehler beim Umbenennen" }, { status: 500 });
   }
