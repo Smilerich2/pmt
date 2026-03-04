@@ -15,6 +15,7 @@ import {
   AlertTriangle,
   ExternalLink,
   Pencil,
+  Zap,
 } from "lucide-react";
 
 type MediaFile = {
@@ -58,6 +59,8 @@ export default function MediaPage() {
   const [renaming, setRenaming] = useState(false);
   const [renameName, setRenameName] = useState("");
   const [renameError, setRenameError] = useState("");
+  const [optimizing, setOptimizing] = useState(false);
+  const [optimizeResult, setOptimizeResult] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const fetchMedia = useCallback(async () => {
@@ -156,6 +159,31 @@ export default function MediaPage() {
     setDeleting(false);
   }
 
+  async function handleOptimize() {
+    const nonWebP = files.filter(
+      (f) => f.type === "image" && !f.name.endsWith(".webp") && !f.name.endsWith(".svg")
+    );
+    if (nonWebP.length === 0) {
+      setOptimizeResult("Alle Bilder sind bereits im WebP-Format.");
+      setTimeout(() => setOptimizeResult(null), 4000);
+      return;
+    }
+    if (!window.confirm(`${nonWebP.length} Bild(er) zu WebP konvertieren? Referenzen in Beiträgen werden automatisch aktualisiert.`)) return;
+
+    setOptimizing(true);
+    setOptimizeResult(null);
+    try {
+      const res = await fetch("/api/media/optimize", { method: "POST" });
+      const data = await res.json();
+      setOptimizeResult(data.message || "Fertig!");
+      await fetchMedia();
+      setTimeout(() => setOptimizeResult(null), 6000);
+    } catch {
+      setOptimizeResult("Fehler bei der Optimierung.");
+    }
+    setOptimizing(false);
+  }
+
   const filtered = files.filter((f) => {
     if (filter !== "all" && f.type !== filter) return false;
     if (search && !f.name.toLowerCase().includes(search.toLowerCase())) return false;
@@ -170,6 +198,18 @@ export default function MediaPage() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-foreground">Medienverwaltung</h1>
         <div className="flex items-center gap-2">
+          <button
+            onClick={handleOptimize}
+            disabled={optimizing}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm border border-primary/30 text-primary hover:bg-primary/5 transition-colors disabled:opacity-50"
+          >
+            {optimizing ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Zap className="w-4 h-4" />
+            )}
+            {optimizing ? "Optimiere..." : "WebP optimieren"}
+          </button>
           {unusedCount > 0 && (
             <button
               onClick={handleCleanupUnused}
@@ -210,6 +250,14 @@ export default function MediaPage() {
         <span>{files.filter((f) => f.type === "image").length} Bilder</span>
         <span>{files.filter((f) => f.type === "video").length} Videos</span>
       </div>
+
+      {/* Optimize result */}
+      {optimizeResult && (
+        <div className="flex items-center gap-2 mb-4 px-3 py-2 rounded-lg bg-emerald-50 border border-emerald-200 text-sm text-emerald-700">
+          <Check className="w-4 h-4 shrink-0" />
+          {optimizeResult}
+        </div>
+      )}
 
       {/* Filter & Search */}
       <div className="flex items-center gap-3 mb-4">
