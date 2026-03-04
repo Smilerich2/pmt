@@ -171,68 +171,66 @@ export default async function KategorieSeite({
               <BookOpen className="w-5 h-5 text-primary" />
               Beiträge
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {category.posts.map((post) => (
                 <Link
                   key={post.id}
                   href={`/post/${post.slug}`}
-                  className="group flex gap-4 p-4 rounded-xl bg-card border border-border/60 hover:border-primary/30 hover:shadow-md transition-all duration-200"
+                  className="group rounded-xl overflow-hidden bg-card border border-border/60 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300"
                 >
-                  {/* Thumbnail */}
-                  {post.coverImage ? (
-                    <div className="shrink-0 w-28 h-20 rounded-lg overflow-hidden">
-                      {post.coverImage.startsWith("linear-gradient") ? (
+                  {/* Cover */}
+                  <div className="relative aspect-[16/9] overflow-hidden">
+                    {post.coverImage ? (
+                      post.coverImage.startsWith("linear-gradient") ? (
                         <div
-                          className="w-full h-full"
+                          className="absolute inset-0 w-full h-full transition-transform duration-500 group-hover:scale-105"
                           style={{ background: post.coverImage }}
                         />
                       ) : (
                         <img
                           src={post.coverImage}
-                          alt={post.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          alt={stripAccent(post.title)}
+                          className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                         />
-                      )}
-                    </div>
-                  ) : (
-                    <div className="shrink-0 w-28 h-20 rounded-lg bg-muted flex items-center justify-center">
-                      <FileText className="w-8 h-8 text-muted-foreground/50" />
-                    </div>
-                  )}
+                      )
+                    ) : (
+                      <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center">
+                        <FileText className="w-10 h-10 text-muted-foreground/30" />
+                      </div>
+                    )}
 
-                  {/* Info */}
-                  <div className="flex flex-col justify-center min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      {post.type === "video" && (
-                        <Badge
-                          variant="secondary"
-                          className="text-xs gap-1 px-1.5 py-0"
-                        >
-                          <Video className="w-3 h-3" />
-                          Video
-                        </Badge>
-                      )}
-                      {post.type === "webpage" && (
-                        <Badge
-                          variant="secondary"
-                          className="text-xs gap-1 px-1.5 py-0"
-                        >
-                          <Globe className="w-3 h-3" />
-                          Interaktiv
-                        </Badge>
-                      )}
-                      {post.duration && (
-                        <span className="text-xs text-muted-foreground flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          {post.duration}
-                        </span>
-                      )}
-                    </div>
-                    <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-1">
+                    {/* Badges on image */}
+                    {(post.type === "video" || post.type === "webpage" || post.duration) && (
+                      <div className="absolute top-3 left-3 flex items-center gap-1.5">
+                        {post.type === "video" && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-black/50 text-white backdrop-blur-sm">
+                            <Video className="w-3 h-3" />
+                            Video
+                          </span>
+                        )}
+                        {post.type === "webpage" && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-black/50 text-white backdrop-blur-sm">
+                            <Globe className="w-3 h-3" />
+                            Interaktiv
+                          </span>
+                        )}
+                        {post.duration && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-black/50 text-white backdrop-blur-sm">
+                            <Clock className="w-3 h-3" />
+                            {post.duration}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Text area */}
+                  <div className="p-4">
+                    <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-2">
                       {stripAccent(post.title)}
                     </h3>
                     {post.description && (
-                      <p className="text-sm text-muted-foreground line-clamp-2 mt-0.5">
+                      <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
                         {post.description}
                       </p>
                     )}
