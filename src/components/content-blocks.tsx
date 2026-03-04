@@ -5,6 +5,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
+import rehypeRaw from "rehype-raw";
 import "katex/dist/katex.min.css";
 import {
   Lightbulb,
@@ -16,12 +17,12 @@ import {
   BookOpen,
 } from "lucide-react";
 
-/** Renders markdown + KaTeX inside block contexts (callout, accordion). */
+/** Renders markdown + KaTeX inside block contexts (callout, accordion). Supports raw HTML (video, iframe, audio). */
 function BlockContent({ text }: { text: string }) {
   return (
     <ReactMarkdown
       remarkPlugins={[remarkGfm, remarkMath]}
-      rehypePlugins={[rehypeKatex]}
+      rehypePlugins={[rehypeRaw, rehypeKatex]}
       components={{
         p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
         strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
@@ -169,7 +170,7 @@ export function Accordion({
       </button>
       <div
         className={`overflow-hidden transition-all duration-200 ${
-          open ? "max-h-[1000px] opacity-100" : "max-h-0 opacity-0"
+          open ? "max-h-[5000px] opacity-100" : "max-h-0 opacity-0"
         }`}
       >
         <div className="px-4 pb-4 text-sm text-foreground/85 leading-relaxed border-t border-border/40 pt-3">
