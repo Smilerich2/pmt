@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { ArrowLeft, Loader2, Save } from "lucide-react";
+import { ArrowLeft, Loader2, Save, ExternalLink, ChevronDown, ChevronUp, Settings } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,8 +26,10 @@ export default function EditPostPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const [title, setTitle] = useState("");
+  const [slug, setSlug] = useState("");
   const [description, setDescription] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [content, setContent] = useState("");
@@ -44,6 +46,7 @@ export default function EditPostPage() {
       fetch("/api/categories").then((r) => r.json()),
     ]).then(([post, cats]) => {
       setTitle(post.title);
+      setSlug(post.slug ?? "");
       setDescription(post.description ?? "");
       setCategoryId(post.categoryId ?? "");
       setContent(post.content ?? "");
@@ -67,8 +70,9 @@ export default function EditPostPage() {
     setContent("");
   }
 
-  async function handleSave(e: React.FormEvent) {
-    e.preventDefault();
+  const handleSave = useCallback(async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!title || !categoryId || saving) return;
     setSaving(true);
 
     try {
@@ -97,7 +101,19 @@ export default function EditPostPage() {
     } finally {
       setSaving(false);
     }
-  }
+  }, [id, title, description, content, editorType, categoryId, coverImage, postType, duration, tags, published, saving, router]);
+
+  // Cmd+S / Ctrl+S to save
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === "s") {
+        e.preventDefault();
+        handleSave();
+      }
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [handleSave]);
 
   if (loading) {
     return (
@@ -110,7 +126,7 @@ export default function EditPostPage() {
   const isWebpage = editorType === "HTML";
 
   return (
-    <div>
+    <div className="pb-20">
       <div className="flex items-center gap-4 mb-6">
         <Link href="/admin/posts">
           <Button variant="ghost" size="sm">
@@ -121,6 +137,7 @@ export default function EditPostPage() {
       </div>
 
       <form onSubmit={handleSave} className="space-y-6">
+        {/* Titel & Kategorie — always visible */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="title">Titel</Label>
@@ -152,58 +169,80 @@ export default function EditPostPage() {
           </div>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="description">Beschreibung (Vorschau)</Label>
-          <Textarea
-            id="description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={2}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label>
-            Tags (optional){" "}
-            <span className="text-muted-foreground font-normal text-xs">
-              — Werden als Chips im Beitrag angezeigt
+        {/* Collapsible settings */}
+        <div className="rounded-xl border border-border/60 bg-card">
+          <button
+            type="button"
+            onClick={() => setSettingsOpen(!settingsOpen)}
+            className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <span className="flex items-center gap-2">
+              <Settings className="w-4 h-4" />
+              Einstellungen
+              {(description || tags || coverImage || postType !== "text" || duration) && (
+                <span className="w-2 h-2 rounded-full bg-primary" />
+              )}
             </span>
-          </Label>
-          <TagInput value={tags} onChange={setTags} />
+            {settingsOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </button>
+
+          {settingsOpen && (
+            <div className="px-4 pb-4 space-y-4 border-t border-border/40 pt-4">
+              <div className="space-y-2">
+                <Label htmlFor="description">Beschreibung (Vorschau)</Label>
+                <Textarea
+                  id="description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={2}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>
+                  Tags (optional){" "}
+                  <span className="text-muted-foreground font-normal text-xs">
+                    — Werden als Chips im Beitrag angezeigt
+                  </span>
+                </Label>
+                <TagInput value={tags} onChange={setTags} />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Coverbild</Label>
+                  <ImageUpload value={coverImage} onChange={setCoverImage} />
+                </div>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="type">Typ</Label>
+                    <select
+                      id="type"
+                      value={postType}
+                      onChange={(e) => handlePostTypeChange(e.target.value)}
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    >
+                      <option value="text">Text</option>
+                      <option value="video">Video</option>
+                      <option value="webpage">Webseite (HTML/CSS/JS)</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="duration">Dauer (optional)</Label>
+                    <Input
+                      id="duration"
+                      value={duration}
+                      onChange={(e) => setDuration(e.target.value)}
+                      placeholder="z.B. 12 Min"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label>Coverbild</Label>
-            <ImageUpload value={coverImage} onChange={setCoverImage} />
-          </div>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="type">Typ</Label>
-              <select
-                id="type"
-                value={postType}
-                onChange={(e) => handlePostTypeChange(e.target.value)}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              >
-                <option value="text">Text</option>
-                <option value="video">Video</option>
-                <option value="webpage">Webseite (HTML/CSS/JS)</option>
-              </select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="duration">Dauer (optional)</Label>
-              <Input
-                id="duration"
-                value={duration}
-                onChange={(e) => setDuration(e.target.value)}
-                placeholder="z.B. 12 Min"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Editor – Markdown oder HTML je nach Typ */}
+        {/* Editor */}
         <div className="space-y-2">
           {isWebpage ? (
             <>
@@ -227,8 +266,11 @@ export default function EditPostPage() {
             </>
           )}
         </div>
+      </form>
 
-        <div className="flex items-center justify-between border-t border-border/60 pt-6">
+      {/* Sticky Save Bar */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-md border-t border-border/60 px-6 py-3">
+        <div className="max-w-[calc(100%-var(--sidebar-width,256px))] ml-auto flex items-center justify-between">
           <label className="flex items-center gap-2 cursor-pointer">
             <input
               type="checkbox"
@@ -239,16 +281,29 @@ export default function EditPostPage() {
             <span className="text-sm text-foreground">Veröffentlicht</span>
           </label>
 
-          <Button type="submit" disabled={saving || !title || !categoryId}>
-            {saving ? (
-              <Loader2 className="w-4 h-4 animate-spin mr-2" />
-            ) : (
-              <Save className="w-4 h-4 mr-2" />
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-muted-foreground hidden sm:block">⌘S zum Speichern</span>
+            {slug && (
+              <Link
+                href={`/post/${slug}`}
+                target="_blank"
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground border border-border/60 hover:bg-accent transition-colors"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                Vorschau
+              </Link>
             )}
-            Speichern
-          </Button>
+            <Button onClick={() => handleSave()} disabled={saving || !title || !categoryId}>
+              {saving ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              ) : (
+                <Save className="w-4 h-4 mr-2" />
+              )}
+              Speichern
+            </Button>
+          </div>
         </div>
-      </form>
+      </div>
     </div>
   );
 }

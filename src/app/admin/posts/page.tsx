@@ -116,10 +116,10 @@ function PostsContent() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-foreground">Beiträge</h1>
-        <Link href="/admin/posts/new">
+        <Link href={selectedCategory ? `/admin/posts/new?kategorie=${selectedCategory}` : "/admin/posts/new"}>
           <Button>
             <Plus className="w-4 h-4 mr-2" />
-            Neuer Beitrag
+            {activeCategoryName ? `Neuer Beitrag in „${activeCategoryName}"` : "Neuer Beitrag"}
           </Button>
         </Link>
       </div>
