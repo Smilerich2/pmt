@@ -442,3 +442,22 @@ export function Quiz({
     </div>
   );
 }
+
+// ─── Spalten (Columns) ───
+
+export function SpaltenBlock({ columns }: { columns: string[] }) {
+  const gridClass =
+    columns.length === 3
+      ? "grid grid-cols-1 md:grid-cols-3 gap-6 my-6"
+      : "grid grid-cols-1 md:grid-cols-2 gap-6 my-6";
+
+  return (
+    <div className={gridClass}>
+      {columns.map((col, i) => (
+        <div key={i} className="min-w-0">
+          <BlockContent text={col} />
+        </div>
+      ))}
+    </div>
+  );
+}

@@ -6,7 +6,7 @@ import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import rehypeRaw from "rehype-raw";
 import "katex/dist/katex.min.css";
-import { Callout, Accordion, Quiz, BildBlock, DemoBlock, HtmlDemoBlock, GlossarTooltip } from "./content-blocks";
+import { Callout, Accordion, Quiz, BildBlock, DemoBlock, HtmlDemoBlock, GlossarTooltip, SpaltenBlock } from "./content-blocks";
 
 export type GlossaryEntry = { term: string; definition: string };
 
@@ -29,7 +29,8 @@ type Block =
   | { type: "quiz"; question: string; options: { text: string; correct: boolean }[]; explanation?: string }
   | { type: "bild"; config: BildConfig }
   | { type: "demo"; name: string; height?: number; title?: string }
-  | { type: "htmldemo"; html: string; css: string; js: string; height?: number; title?: string };
+  | { type: "htmldemo"; html: string; css: string; js: string; height?: number; title?: string }
+  | { type: "spalten"; columns: string[] };
 
 function parseContent(raw: string): Block[] {
   const blocks: Block[] = [];
@@ -136,6 +137,27 @@ function parseContent(raw: string): Block[] {
         height,
         title,
       });
+      i++; // skip closing :::
+      continue;
+    }
+
+    // ─── Spalten: :::spalten ───
+    if (line.trim() === ":::spalten") {
+      flushMarkdown();
+      const columns: string[] = [];
+      let currentCol: string[] = [];
+      i++;
+      while (i < lines.length && lines[i].trim() !== ":::") {
+        if (lines[i].trim().match(/^---(links|mitte|rechts)$/)) {
+          if (currentCol.length > 0) columns.push(currentCol.join("\n").trim());
+          currentCol = [];
+        } else {
+          currentCol.push(lines[i]);
+        }
+        i++;
+      }
+      if (currentCol.length > 0) columns.push(currentCol.join("\n").trim());
+      blocks.push({ type: "spalten", columns });
       i++; // skip closing :::
       continue;
     }
@@ -274,6 +296,8 @@ export function MarkdownRenderer({ content, glossary = [] }: { content: string; 
             return <DemoBlock key={i} name={block.name} height={block.height} title={block.title} />;
           case "htmldemo":
             return <HtmlDemoBlock key={i} html={block.html} css={block.css} js={block.js} height={block.height} title={block.title} />;
+          case "spalten":
+            return <SpaltenBlock key={i} columns={block.columns} />;
           case "markdown":
             return <MarkdownBlock key={i} content={block.content} glossary={glossary} />;
         }

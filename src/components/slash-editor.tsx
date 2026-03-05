@@ -41,6 +41,9 @@ import {
   Music,
   Maximize2,
   Minimize2,
+  Columns2,
+  ArrowUpDown,
+  CopyPlus,
   type LucideIcon,
 } from "lucide-react";
 
@@ -268,6 +271,15 @@ const slashCommands: SlashCommand[] = [
     category: "Blöcke",
     action: "modal",
     modalType: "htmldemo",
+  },
+  {
+    id: "spalten",
+    label: "Spalten-Layout",
+    description: "Inhalte nebeneinander anordnen (2 oder 3 Spalten)",
+    icon: Columns2,
+    category: "Blöcke",
+    action: "modal",
+    modalType: "spalten",
   },
 ];
 
@@ -1234,6 +1246,96 @@ function DemoModal({
   );
 }
 
+// ─── Spalten Modal ───
+
+function SpaltenModal({
+  onInsert,
+  onClose,
+}: {
+  onInsert: (md: string) => void;
+  onClose: () => void;
+}) {
+  const [colCount, setColCount] = useState(2);
+  const [cols, setCols] = useState(["Inhalt links...", "Inhalt rechts..."]);
+
+  function updateColCount(n: number) {
+    setColCount(n);
+    setCols((prev) => {
+      const next = [...prev];
+      while (next.length < n) next.push(`Spalte ${next.length + 1}...`);
+      return next.slice(0, n);
+    });
+  }
+
+  function updateCol(index: number, val: string) {
+    setCols((prev) => {
+      const next = [...prev];
+      next[index] = val;
+      return next;
+    });
+  }
+
+  const labels = colCount === 2 ? ["links", "rechts"] : ["links", "mitte", "rechts"];
+
+  function generate() {
+    const lines = [":::spalten"];
+    cols.forEach((col, i) => {
+      lines.push(`---${labels[i]}`);
+      lines.push(col);
+    });
+    lines.push(":::");
+    onInsert(lines.join("\n") + "\n");
+  }
+
+  return (
+    <ModalShell title="Spalten-Layout einfügen" onClose={onClose}>
+      <div className="space-y-4">
+        <div>
+          <label className="text-sm text-muted-foreground mb-1.5 block">Anzahl Spalten</label>
+          <div className="flex gap-1.5">
+            {[2, 3].map((n) => (
+              <button
+                key={n}
+                type="button"
+                onClick={() => updateColCount(n)}
+                className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  colCount === n
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-accent/50 text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {n} Spalten
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {cols.map((col, i) => (
+          <div key={i}>
+            <label className="text-sm text-muted-foreground mb-1 block capitalize">
+              {labels[i]}
+            </label>
+            <textarea
+              value={col}
+              onChange={(e) => updateCol(i, e.target.value)}
+              rows={4}
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-mono resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+              placeholder={`Markdown für Spalte ${labels[i]}...`}
+            />
+          </div>
+        ))}
+
+        <div className="p-3 rounded-lg bg-accent/50 text-xs text-muted-foreground">
+          Jede Spalte unterstützt normales Markdown (Text, Listen, Fettdruck, etc.)
+        </div>
+      </div>
+      <div className="mt-4">
+        <ModalFooter onClose={onClose} onConfirm={generate} label="Einfügen" />
+      </div>
+    </ModalShell>
+  );
+}
+
 // ─── Shared Modal Components ───
 
 function ModalShell({
@@ -1699,7 +1801,7 @@ export function SlashEditor({
   const [filter, setFilter] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [slashPos, setSlashPos] = useState<number | null>(null);
-  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
+  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
   const [modal, setModal] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [uploadingInline, setUploadingInline] = useState(false);
@@ -1912,15 +2014,36 @@ export function SlashEditor({
     setModal(null);
   }
 
-  function calculateMenuPosition() {
+  function calculateMenuPosition(): { top: number; left: number } {
     const ta = textareaRef.current;
-    if (!ta) return { top: 0, left: 0 };
-    const text = ta.value.substring(0, ta.selectionStart);
-    const lines = text.split("\n");
-    const lineHeight = 22;
-    const currentLine = lines.length;
-    const top = currentLine * lineHeight - ta.scrollTop + 8;
-    return { top: Math.min(top, ta.clientHeight - 40), left: 16 };
+    if (!ta) return { top: 0, left: 60 };
+
+    // Create a mirror div to measure cursor position accurately
+    const mirror = document.createElement("div");
+    const style = window.getComputedStyle(ta);
+    mirror.style.position = "absolute";
+    mirror.style.visibility = "hidden";
+    mirror.style.whiteSpace = "pre-wrap";
+    mirror.style.wordWrap = "break-word";
+    mirror.style.width = ta.clientWidth + "px";
+    mirror.style.font = style.font;
+    mirror.style.lineHeight = style.lineHeight;
+    mirror.style.padding = style.padding;
+    mirror.style.border = style.border;
+    mirror.style.boxSizing = style.boxSizing;
+
+    const textBefore = ta.value.substring(0, ta.selectionStart);
+    const span = document.createElement("span");
+    mirror.textContent = textBefore.slice(0, -1);
+    span.textContent = "/";
+    mirror.appendChild(span);
+    document.body.appendChild(mirror);
+
+    const top = span.offsetTop - ta.scrollTop + 28;
+    const left = Math.min(span.offsetLeft + 12, ta.clientWidth - 290);
+
+    document.body.removeChild(mirror);
+    return { top: Math.max(0, Math.min(top, ta.clientHeight - 40)), left: Math.max(12, left) };
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -1933,6 +2056,21 @@ export function SlashEditor({
     if (mod && e.key === "i") {
       e.preventDefault();
       wrapSelection("*", "*", "kursiver Text");
+      return;
+    }
+    if (mod && e.key === "d") {
+      e.preventDefault();
+      duplicateLineOrBlock();
+      return;
+    }
+    if (mod && e.shiftKey && e.key === "ArrowUp") {
+      e.preventDefault();
+      moveBlock("up");
+      return;
+    }
+    if (mod && e.shiftKey && e.key === "ArrowDown") {
+      e.preventDefault();
+      moveBlock("down");
       return;
     }
 
@@ -1993,8 +2131,16 @@ export function SlashEditor({
       setShowMenu(true);
       setFilter("");
       setSelectedIndex(0);
-      setMenuPosition(calculateMenuPosition());
+      // Defer position calculation so the DOM is up to date
+      requestAnimationFrame(() => setMenuPosition(calculateMenuPosition()));
     } else if (showMenu && slashPos !== null) {
+      // Close if the slash was deleted or cursor moved before it
+      if (pos <= slashPos || newValue[slashPos] !== "/") {
+        setShowMenu(false);
+        setFilter("");
+        setSlashPos(null);
+        return;
+      }
       const typed = newValue.slice(slashPos + 1, pos);
       if (typed.includes("\n") || typed.includes(" ")) {
         setShowMenu(false);
@@ -2018,6 +2164,122 @@ export function SlashEditor({
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, [showMenu]);
+
+  // ─── Block detection & movement ───
+
+  const getBlockAtCursor = useCallback((): { start: number; end: number } | null => {
+    const ta = textareaRef.current;
+    if (!ta) return null;
+    const cursor = ta.selectionStart;
+    const lines = value.split("\n");
+    let charIdx = 0;
+    let cursorLine = 0;
+    for (let i = 0; i < lines.length; i++) {
+      if (charIdx + lines[i].length >= cursor) { cursorLine = i; break; }
+      charIdx += lines[i].length + 1;
+    }
+
+    // Block delimiters: :::, +++, ???, $$
+    const openers = /^(:::(?:merke|tipp|warnung|info|bild\[|demo\[|htmldemo|spalten)|^\+\+\+|^\?\?\?|^\$\$)/;
+    const closers = /^(:::|\+\+\+|\?\?\?|\$\$)\s*$/;
+
+    // Search upward for opener
+    let blockStart = -1;
+    for (let i = cursorLine; i >= 0; i--) {
+      if (openers.test(lines[i].trim())) { blockStart = i; break; }
+      if (i < cursorLine && closers.test(lines[i].trim())) break; // hit a closer before an opener
+    }
+    if (blockStart === -1) return null;
+
+    // Search downward for closer
+    let blockEnd = -1;
+    const opener = lines[blockStart].trim();
+    const closePattern = opener.startsWith(":::") ? ":::" : opener.startsWith("+++") ? "+++" : opener.startsWith("???") ? "???" : "$$";
+    for (let i = blockStart + 1; i < lines.length; i++) {
+      if (lines[i].trim() === closePattern) { blockEnd = i; break; }
+    }
+    if (blockEnd === -1) return null;
+    if (cursorLine < blockStart || cursorLine > blockEnd) return null;
+
+    // Convert line indices to character positions
+    let startChar = 0;
+    for (let i = 0; i < blockStart; i++) startChar += lines[i].length + 1;
+    let endChar = startChar;
+    for (let i = blockStart; i <= blockEnd; i++) endChar += lines[i].length + 1;
+
+    return { start: startChar, end: Math.min(endChar, value.length + 1) };
+  }, [value]);
+
+  const moveBlock = useCallback((direction: "up" | "down") => {
+    const block = getBlockAtCursor();
+    if (!block) return;
+
+    const blockText = value.slice(block.start, block.end);
+    const before = value.slice(0, block.start);
+    const after = value.slice(block.end);
+
+    if (direction === "up") {
+      // Find the previous line/block boundary
+      const prevLines = before.trimEnd();
+      if (!prevLines) return;
+      // Find start of previous paragraph/block (last double newline or start)
+      const prevBlockStart = Math.max(0, prevLines.lastIndexOf("\n\n") + 2);
+      const prevText = value.slice(prevBlockStart, block.start);
+      const newValue = value.slice(0, prevBlockStart) + blockText + prevText + after;
+      onChange(newValue);
+      requestAnimationFrame(() => {
+        const ta = textareaRef.current;
+        if (ta) { ta.selectionStart = ta.selectionEnd = prevBlockStart; ta.focus(); }
+      });
+    } else {
+      // Find the next block boundary
+      const remaining = after;
+      if (!remaining.trim()) return;
+      // Find end of next paragraph/block (first double newline or end)
+      let nextEnd = remaining.indexOf("\n\n");
+      if (nextEnd === -1) nextEnd = remaining.length;
+      else nextEnd += 2;
+      const nextText = remaining.slice(0, nextEnd);
+      const newValue = before + nextText + blockText + remaining.slice(nextEnd);
+      onChange(newValue);
+      requestAnimationFrame(() => {
+        const ta = textareaRef.current;
+        if (ta) { const pos = before.length + nextText.length; ta.selectionStart = ta.selectionEnd = pos; ta.focus(); }
+      });
+    }
+  }, [value, onChange, getBlockAtCursor]);
+
+  // ─── Duplicate line/block (Cmd+D) ───
+
+  const duplicateLineOrBlock = useCallback(() => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+
+    const block = getBlockAtCursor();
+    if (block) {
+      // Duplicate the entire block
+      const blockText = value.slice(block.start, block.end);
+      const newValue = value.slice(0, block.end) + "\n" + blockText + value.slice(block.end);
+      onChange(newValue);
+      requestAnimationFrame(() => {
+        ta.selectionStart = ta.selectionEnd = block.end + 1;
+        ta.focus();
+      });
+    } else {
+      // Duplicate current line
+      const cursor = ta.selectionStart;
+      const lineStart = value.lastIndexOf("\n", cursor - 1) + 1;
+      let lineEnd = value.indexOf("\n", cursor);
+      if (lineEnd === -1) lineEnd = value.length;
+      const line = value.slice(lineStart, lineEnd);
+      const newValue = value.slice(0, lineEnd) + "\n" + line + value.slice(lineEnd);
+      onChange(newValue);
+      requestAnimationFrame(() => {
+        ta.selectionStart = ta.selectionEnd = lineEnd + line.length + 1;
+        ta.focus();
+      });
+    }
+  }, [value, onChange, getBlockAtCursor]);
 
   // Auto-resize textarea
   useEffect(() => {
@@ -2110,6 +2372,17 @@ export function SlashEditor({
               icon={Link}
               label="Link"
               onMouseDown={() => wrapLinkSelection()}
+            />
+            <div className="w-px h-5 bg-border/60 mx-1" />
+            <FormatButton
+              icon={ArrowUpDown}
+              label="Block verschieben (⌘⇧↑↓)"
+              onMouseDown={() => moveBlock("up")}
+            />
+            <FormatButton
+              icon={CopyPlus}
+              label="Zeile/Block duplizieren (⌘D)"
+              onMouseDown={() => duplicateLineOrBlock()}
             />
             <div className="w-px h-5 bg-border/60 mx-1" />
           </>
@@ -2232,7 +2505,7 @@ export function SlashEditor({
               <div
                 ref={menuRef}
                 className="absolute z-50 w-72 max-h-80 overflow-y-auto rounded-xl border border-border/60 bg-card shadow-xl"
-                style={{ top: menuPosition.top, left: menuPosition.left }}
+                style={{ top: menuPosition?.top ?? 0, left: menuPosition?.left ?? 16 }}
               >
                 <div className="p-2 border-b border-border/40">
                   <p className="text-xs text-muted-foreground px-2 py-1">
@@ -2316,8 +2589,9 @@ export function SlashEditor({
           <span>{lineCount} Zeilen</span>
         </div>
         <div className="flex items-center gap-3">
-          <span>Tab = Einrücken</span>
           <span>/ = Blöcke</span>
+          <span>⌘D = Duplizieren</span>
+          <span>⌘⇧↑↓ = Block verschieben</span>
           {isFullscreen && <span>Esc = Vollbild beenden</span>}
         </div>
       </div>
@@ -2343,6 +2617,9 @@ export function SlashEditor({
       )}
       {modal === "htmldemo" && (
         <HtmlDemoModal onInsert={handleModalInsert} onClose={() => setModal(null)} />
+      )}
+      {modal === "spalten" && (
+        <SpaltenModal onInsert={handleModalInsert} onClose={() => setModal(null)} />
       )}
       {showHelp && (
         <BlockHelpOverlay onClose={() => setShowHelp(false)} />
