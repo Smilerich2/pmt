@@ -19,12 +19,13 @@ export async function GET() {
 
     const mediaFiles = await Promise.all(
       files
-        .filter((f) => /\.(jpg|jpeg|png|gif|webp|svg|mp4|webm|mov|pdf)$/i.test(f))
+        .filter((f) => /\.(jpg|jpeg|png|gif|webp|svg|mp4|webm|mov|pdf|mp3|m4a|wav|ogg|aac|flac)$/i.test(f))
         .map(async (f) => {
           const filePath = path.join(uploadDir, f);
           const stats = await stat(filePath);
           const ext = path.extname(f).toLowerCase();
           const isVideo = [".mp4", ".webm", ".mov"].includes(ext);
+          const isAudio = [".mp3", ".m4a", ".wav", ".ogg", ".aac", ".flac"].includes(ext);
           const fileUrl = `/uploads/${f}`;
 
           // Check which posts use this file (in content or as cover image)
@@ -45,7 +46,7 @@ export async function GET() {
             name: f,
             url: fileUrl,
             size: stats.size,
-            type: isVideo ? "video" : "image",
+            type: isVideo ? "video" : isAudio ? "audio" : "image",
             createdAt: stats.mtime.toISOString(),
             usedIn: [...usedInPosts, ...usedInCategories],
           };

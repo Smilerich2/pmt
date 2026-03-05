@@ -16,18 +16,19 @@ import {
   ExternalLink,
   Pencil,
   Zap,
+  Music,
 } from "lucide-react";
 
 type MediaFile = {
   name: string;
   url: string;
   size: number;
-  type: "image" | "video";
+  type: "image" | "video" | "audio";
   createdAt: string;
   usedIn: { id: string; title: string }[];
 };
 
-type FilterType = "all" | "image" | "video";
+type FilterType = "all" | "image" | "video" | "audio";
 
 function formatFileSize(bytes: number): string {
   if (bytes < 1024) return bytes + " B";
@@ -235,7 +236,7 @@ export default function MediaPage() {
           <input
             ref={fileRef}
             type="file"
-            accept="image/*,video/*,.pdf"
+            accept="image/*,video/*,audio/*,.pdf"
             multiple
             onChange={(e) => handleUpload(e.target.files)}
             className="hidden"
@@ -249,6 +250,7 @@ export default function MediaPage() {
         <span>{formatFileSize(totalSize)} gesamt</span>
         <span>{files.filter((f) => f.type === "image").length} Bilder</span>
         <span>{files.filter((f) => f.type === "video").length} Videos</span>
+        <span>{files.filter((f) => f.type === "audio").length} Audio</span>
       </div>
 
       {/* Optimize result */}
@@ -262,7 +264,7 @@ export default function MediaPage() {
       {/* Filter & Search */}
       <div className="flex items-center gap-3 mb-4">
         <div className="flex gap-1 bg-accent/50 rounded-lg p-0.5">
-          {(["all", "image", "video"] as FilterType[]).map((t) => (
+          {(["all", "image", "video", "audio"] as FilterType[]).map((t) => (
             <button
               key={t}
               onClick={() => setFilter(t)}
@@ -272,7 +274,7 @@ export default function MediaPage() {
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              {t === "all" ? "Alle" : t === "image" ? "Bilder" : "Videos"}
+              {t === "all" ? "Alle" : t === "image" ? "Bilder" : t === "video" ? "Videos" : "Audio"}
             </button>
           ))}
         </div>
@@ -327,6 +329,10 @@ export default function MediaPage() {
                   {file.type === "video" ? (
                     <div className="w-full h-full bg-muted flex flex-col items-center justify-center">
                       <Film className="w-10 h-10 text-muted-foreground/40" />
+                    </div>
+                  ) : file.type === "audio" ? (
+                    <div className="w-full h-full bg-muted flex flex-col items-center justify-center">
+                      <Music className="w-10 h-10 text-muted-foreground/40" />
                     </div>
                   ) : file.name.endsWith(".pdf") ? (
                     <div className="w-full h-full bg-muted flex flex-col items-center justify-center">
@@ -392,6 +398,11 @@ export default function MediaPage() {
                   controls
                   className="w-full aspect-video bg-black"
                 />
+              ) : selected.type === "audio" ? (
+                <div className="flex flex-col items-center gap-3 p-4 bg-muted/30">
+                  <Music className="w-10 h-10 text-muted-foreground/50" />
+                  <audio src={selected.url} controls className="w-full" />
+                </div>
               ) : (
                 <img
                   src={selected.url}
@@ -461,7 +472,7 @@ export default function MediaPage() {
                 </div>
                 <div>
                   <span className="text-muted-foreground">Typ:</span>
-                  <p className="font-medium text-foreground">{selected.type === "image" ? "Bild" : "Video"}</p>
+                  <p className="font-medium text-foreground">{selected.type === "image" ? "Bild" : selected.type === "video" ? "Video" : "Audio"}</p>
                 </div>
               </div>
               <div>

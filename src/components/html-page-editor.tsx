@@ -535,7 +535,7 @@ function MediaModal({
           <input
             ref={fileRef}
             type="file"
-            accept="image/*,video/*"
+            accept="image/*,video/*,audio/*"
             onChange={handleUpload}
             className="hidden"
           />

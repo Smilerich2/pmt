@@ -790,7 +790,7 @@ function MediaLibraryModal({
               <X className="w-5 h-5" />
             </button>
           </div>
-          <input ref={fileRef} type="file" accept="image/*,video/*" onChange={handleUpload} className="hidden" />
+          <input ref={fileRef} type="file" accept="image/*,video/*,audio/*" onChange={handleUpload} className="hidden" />
         </div>
 
         {/* Grid */}
