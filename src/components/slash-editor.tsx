@@ -38,6 +38,7 @@ import {
   Strikethrough,
   Link,
   BookA,
+  Music,
   type LucideIcon,
 } from "lucide-react";
 
@@ -60,7 +61,7 @@ type MediaFile = {
   name: string;
   url: string;
   size: number;
-  type: "image" | "video";
+  type: "image" | "video" | "audio";
   createdAt: string;
 };
 
@@ -220,6 +221,15 @@ const slashCommands: SlashCommand[] = [
     category: "Medien",
     action: "modal",
     modalType: "video",
+  },
+  {
+    id: "audio",
+    label: "Audio einfügen",
+    description: "Audiodatei hochladen oder URL einfügen",
+    icon: Music,
+    category: "Medien",
+    action: "modal",
+    modalType: "audio",
   },
   {
     id: "formel",
@@ -704,6 +714,77 @@ function VideoModal({
             alt="YouTube Vorschau"
             className="w-full h-32 object-cover"
           />
+        </div>
+      )}
+
+      <ModalFooter
+        onClose={onClose}
+        onConfirm={() => onInsert(getMarkdown())}
+        label="Einfügen"
+        disabled={!url}
+      />
+    </ModalShell>
+  );
+}
+
+// ─── Audio Modal ───
+
+function AudioModal({
+  onInsert,
+  onClose,
+}: {
+  onInsert: (md: string) => void;
+  onClose: () => void;
+}) {
+  const [url, setUrl] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    const result = await uploadFile(file);
+    if (result) setUrl(result);
+    setUploading(false);
+  }
+
+  function getMarkdown() {
+    return `<audio src="${url}" controls class="w-full"></audio>\n`;
+  }
+
+  return (
+    <ModalShell title="Audio einfügen" onClose={onClose}>
+      <div
+        onClick={() => fileRef.current?.click()}
+        className="flex flex-col items-center justify-center gap-2 h-28 rounded-lg border-2 border-dashed border-border/60 hover:border-primary/50 cursor-pointer transition-colors mb-4"
+      >
+        {uploading ? (
+          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        ) : (
+          <>
+            <Music className="w-6 h-6 text-muted-foreground" />
+            <span className="text-sm text-muted-foreground">
+              Audiodatei hochladen
+            </span>
+          </>
+        )}
+      </div>
+      <input ref={fileRef} type="file" accept="audio/*" onChange={handleFileUpload} className="hidden" />
+
+      <div className="mb-4">
+        <label className="text-sm text-muted-foreground">Oder Audio-URL</label>
+        <input
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          placeholder="/uploads/audio.mp3"
+          className="w-full mt-1 rounded-md border border-input bg-background px-3 py-2 text-sm"
+        />
+      </div>
+
+      {url && (
+        <div className="mb-4">
+          <audio src={url} controls className="w-full" />
         </div>
       )}
 
@@ -2149,6 +2230,9 @@ export function SlashEditor({
       )}
       {modal === "video" && (
         <VideoModal onInsert={handleModalInsert} onClose={() => setModal(null)} />
+      )}
+      {modal === "audio" && (
+        <AudioModal onInsert={handleModalInsert} onClose={() => setModal(null)} />
       )}
       {modal === "media" && (
         <MediaLibraryModal onInsert={handleModalInsert} onClose={() => setModal(null)} />
