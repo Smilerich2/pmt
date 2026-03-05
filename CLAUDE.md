@@ -71,8 +71,9 @@ src/app/
     auth/               # POST (login), DELETE (logout)
     categories/         # GET, POST; [id]: PUT, DELETE
     posts/              # GET, POST; [id]: PUT, DELETE
-    upload/             # POST: file upload → public/uploads/ (max 500MB via busboy)
-    media/              # GET: list uploaded files
+    upload/             # POST: file upload → public/uploads/ (max 500MB via busboy, auto WebP conversion for images)
+    media/              # GET: list uploaded files (checks usage in posts + categories)
+    media/optimize/     # POST: bulk convert existing images to WebP, updates all DB references
     reorder/            # POST: update positions
     export/             # GET: JSON export of all categories + posts
     export/full/        # GET: ZIP export (backup.json + uploads/ directory)
@@ -115,6 +116,8 @@ Posts use a custom Markdown dialect parsed in `src/components/markdown-renderer.
 | `:::demo[name]` with optional `height:` / `title:` then `:::` | Named React demo in iframe |
 | `:::htmldemo` with `---html` / `---css` / `---js` sections then `:::` | Custom HTML/CSS/JS sandbox iframe |
 
+Raw HTML (e.g. `<video>`, `<audio>`, `<iframe>`) is supported inside callout and accordion blocks via `rehype-raw` in `BlockContent`.
+
 KaTeX math also renders correctly **inside** callout, accordion, and quiz blocks (via `BlockContent`/`InlineContent` helpers in `content-blocks.tsx`).
 
 ### Named Demo Registry (`src/demos/`)
@@ -124,7 +127,7 @@ KaTeX math also renders correctly **inside** callout, accordion, and quiz blocks
 - To add a new demo: create the `.tsx` file, register in `index.ts`, add to `AVAILABLE_DEMOS` in `slash-editor.tsx`
 
 ### Editor (`src/components/slash-editor.tsx`)
-A custom textarea-based editor with `/`-triggered command palette for inserting markdown blocks, live preview toggle, and a media browser modal for picking uploaded images.
+A custom textarea-based editor with `/`-triggered command palette for inserting markdown blocks, live preview toggle, and a media browser modal for picking uploaded files. Slash commands include image (with `:::bild` config), video (upload or YouTube URL), audio (upload or URL → `<audio>` tag), table, formula, callout, accordion, quiz, demo blocks, and more.
 
 ### Navigation Components
 - `src/components/site-header.tsx` — sticky top header with logo, admin link (admin only), logout. Used on all public pages (home, category, post).
@@ -146,7 +149,12 @@ Floating feedback button on all public pages. Types: `feedback`, `fehler`, `wuns
 - Glossar-type feedback can be adopted as glossary entries from the admin page
 
 ### File Uploads (`src/app/api/upload/route.ts`)
-Uses `busboy` for streaming multipart uploads (up to 500MB). `next.config.ts` sets `experimental.proxyClientMaxBodySize: "500mb"` to prevent Next.js middleware from truncating large request bodies (default 10MB).
+Uses `busboy` for streaming multipart uploads (up to 500MB). Supports images, videos, audio (MP3, M4A, WAV, OGG, AAC, FLAC), and PDFs. `next.config.ts` sets `experimental.proxyClientMaxBodySize: "500mb"` to prevent Next.js middleware from truncating large request bodies (default 10MB).
+
+**Automatic WebP conversion:** On upload, images (JPEG, PNG, TIFF, BMP) are automatically converted to WebP using `sharp` (max 1920px width, quality 80%). SVGs and GIFs are kept as-is. The admin media page has a "WebP optimieren" button to bulk-convert existing images and update all DB references (posts + categories).
+
+### Media Usage Tracking (`src/app/api/media/route.ts`)
+The media API checks file usage across both post fields (`content`, `coverImage`) and category images (`image`). Files used nowhere are marked as unused. The admin media page shows usage badges and offers a bulk cleanup button for unused files.
 
 ### Important: Preventing Build-Time Caching
 All server components that query Prisma **must** include `export const dynamic = "force-dynamic"`. Without this, Next.js caches the page at Docker build time using the empty build DB, and the production app shows 0 results.
@@ -154,7 +162,7 @@ All server components that query Prisma **must** include `export const dynamic =
 ### Key Files
 - `src/lib/prisma.ts` — singleton Prisma client
 - `src/lib/utils.ts` — `cn()` helper (clsx + tailwind-merge), `stripAccent()` for title display
-- `src/components/content-blocks.tsx` — `Callout`, `Accordion`, `Quiz`, `BildBlock`, `DemoBlock`, `HtmlDemoBlock` + math-rendering helpers
+- `src/components/content-blocks.tsx` — `Callout`, `Accordion`, `Quiz`, `BildBlock`, `DemoBlock`, `HtmlDemoBlock` + math-rendering helpers (`BlockContent` uses `rehype-raw` for HTML support)
 - `src/components/markdown-renderer.tsx` — parses custom syntax → renders blocks
 - `src/components/slash-editor.tsx` — admin post editor (Markdown)
 - `src/components/html-page-editor.tsx` — admin post editor (HTML/CSS/JS), exports `buildSrcDoc()`
