@@ -115,6 +115,17 @@ function NewPostContent() {
     setContent("");
   }
 
+  // Warn before leaving with unsaved changes
+  useEffect(() => {
+    function handleBeforeUnload(e: BeforeUnloadEvent) {
+      if (title || content) {
+        e.preventDefault();
+      }
+    }
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [title, content]);
+
   const handleSave = useCallback(async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!title || !categoryId || saving) return;

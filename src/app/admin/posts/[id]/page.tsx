@@ -39,6 +39,7 @@ export default function EditPostPage() {
   const [duration, setDuration] = useState("");
   const [tags, setTags] = useState("");
   const [published, setPublished] = useState(false);
+  const [originalContent, setOriginalContent] = useState("");
 
   useEffect(() => {
     Promise.all([
@@ -56,10 +57,22 @@ export default function EditPostPage() {
       setDuration(post.duration ?? "");
       setTags(post.tags ?? "");
       setPublished(post.published ?? false);
+      setOriginalContent(post.content ?? "");
       setCategories(cats);
       setLoading(false);
     });
   }, [id]);
+
+  // Warn before leaving with unsaved changes
+  useEffect(() => {
+    function handleBeforeUnload(e: BeforeUnloadEvent) {
+      if (content !== originalContent) {
+        e.preventDefault();
+      }
+    }
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [content, originalContent]);
 
   function handlePostTypeChange(value: string) {
     if (content.trim() && !window.confirm("Der Inhalt wird beim Typ-Wechsel zurückgesetzt. Fortfahren?")) {

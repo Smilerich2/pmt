@@ -39,6 +39,8 @@ import {
   Link,
   BookA,
   Music,
+  Maximize2,
+  Minimize2,
   type LucideIcon,
 } from "lucide-react";
 
@@ -1702,8 +1704,10 @@ export function SlashEditor({
   const [isDragging, setIsDragging] = useState(false);
   const [uploadingInline, setUploadingInline] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   // "edit" = nur Editor, "split" = Editor + Vorschau, "preview" = nur Vorschau
   const [viewMode, setViewMode] = useState<"edit" | "split" | "preview">("edit");
+  const gutterRef = useRef<HTMLDivElement>(null);
 
   const filtered = slashCommands.filter(
     (cmd) =>
@@ -1932,6 +1936,31 @@ export function SlashEditor({
       return;
     }
 
+    if (e.key === "Tab") {
+      e.preventDefault();
+      const start = e.currentTarget.selectionStart;
+      const end = e.currentTarget.selectionEnd;
+      if (e.shiftKey) {
+        const lineStart = value.lastIndexOf("\n", start - 1) + 1;
+        if (value.slice(lineStart, lineStart + 2) === "  ") {
+          const newVal = value.slice(0, lineStart) + value.slice(lineStart + 2);
+          onChange(newVal);
+          requestAnimationFrame(() => {
+            const ta = textareaRef.current;
+            if (ta) { ta.selectionStart = Math.max(start - 2, lineStart); ta.selectionEnd = Math.max(end - 2, lineStart); }
+          });
+        }
+      } else {
+        const newVal = value.slice(0, start) + "  " + value.slice(end);
+        onChange(newVal);
+        requestAnimationFrame(() => {
+          const ta = textareaRef.current;
+          if (ta) { ta.selectionStart = ta.selectionEnd = start + 2; }
+        });
+      }
+      return;
+    }
+
     if (!showMenu) return;
     if (e.key === "ArrowDown") {
       e.preventDefault();
@@ -1990,8 +2019,47 @@ export function SlashEditor({
     return () => document.removeEventListener("mousedown", handleClick);
   }, [showMenu]);
 
+  // Auto-resize textarea
+  useEffect(() => {
+    const ta = textareaRef.current;
+    if (!ta || viewMode === "preview" || isFullscreen) return;
+    ta.style.height = "auto";
+    ta.style.height = ta.scrollHeight + "px";
+  }, [value, viewMode, isFullscreen]);
+
+  // Fullscreen: fill available space
+  useEffect(() => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    if (isFullscreen) {
+      ta.style.height = "100%";
+    }
+  }, [isFullscreen]);
+
+  // Escape exits fullscreen
+  useEffect(() => {
+    if (!isFullscreen) return;
+    function handleEsc(e: KeyboardEvent) {
+      if (e.key === "Escape" && !showMenu && !modal && !showHelp) {
+        setIsFullscreen(false);
+      }
+    }
+    document.addEventListener("keydown", handleEsc);
+    return () => document.removeEventListener("keydown", handleEsc);
+  }, [isFullscreen, showMenu, modal, showHelp]);
+
+  function syncScroll() {
+    if (gutterRef.current && textareaRef.current) {
+      gutterRef.current.style.transform = `translateY(-${textareaRef.current.scrollTop}px)`;
+    }
+  }
+
+  const lineCount = value.split("\n").length;
+  const wordCount = value.trim() ? value.trim().split(/\s+/).length : 0;
+  const charCount = value.length;
+
   return (
-    <div className="space-y-2">
+    <div className={isFullscreen ? "fixed inset-0 z-50 bg-background flex flex-col p-4 space-y-2" : "space-y-2"}>
       {/* Toolbar */}
       <div className="flex items-center gap-1 p-1 rounded-lg bg-accent/50 border border-border/40">
         {viewMode !== "preview" && (
@@ -2097,6 +2165,11 @@ export function SlashEditor({
           </button>
         </div>
 
+        <ToolbarButton
+          icon={isFullscreen ? Minimize2 : Maximize2}
+          label={isFullscreen ? "Vollbild beenden" : "Vollbild"}
+          onClick={() => setIsFullscreen(!isFullscreen)}
+        />
         <div className="w-px h-5 bg-border/60 mx-1" />
         <ToolbarButton
           icon={CircleHelp}
@@ -2106,11 +2179,11 @@ export function SlashEditor({
       </div>
 
       {/* Editor + Preview Area */}
-      <div className={`${viewMode === "split" ? "grid grid-cols-2 gap-3" : ""}`}>
+      <div className={`${viewMode === "split" ? "grid grid-cols-2 gap-3" : ""} ${isFullscreen ? "flex-1 min-h-0" : ""}`}>
         {/* Editor Panel */}
         {viewMode !== "preview" && (
           <div
-            className={`relative rounded-lg transition-colors ${
+            className={`relative rounded-lg transition-colors ${isFullscreen ? "h-full flex flex-col" : ""} ${
               isDragging ? "ring-2 ring-primary ring-offset-2" : ""
             }`}
             onDragOver={handleDragOver}
@@ -2127,18 +2200,32 @@ export function SlashEditor({
               </div>
             )}
 
-            <textarea
-              ref={textareaRef}
-              value={value}
-              onChange={handleChange}
-              onKeyDown={handleKeyDown}
-              onPaste={handlePaste}
-              placeholder={"Schreibe deinen Inhalt...\nTippe / für Blöcke · Bilder per Drag & Drop oder Strg+V einfügen"}
-              rows={20}
-              className={`w-full rounded-lg border border-input bg-background px-4 py-3 text-sm font-mono resize-y focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
-                viewMode === "split" ? "min-h-[500px]" : "min-h-[300px]"
-              }`}
-            />
+            <div className={`relative ${isFullscreen ? "flex-1 min-h-0" : ""}`}>
+              {/* Line numbers gutter */}
+              <div className="absolute left-0 top-0 bottom-0 w-10 overflow-hidden select-none pointer-events-none border-r border-border/20 bg-muted/20 rounded-l-lg z-10">
+                <div ref={gutterRef} className="pt-3">
+                  {value.split("\n").map((_, i) => (
+                    <div key={i} className="text-right pr-2 text-[11px] text-muted-foreground/40 font-mono" style={{ lineHeight: "22px" }}>
+                      {i + 1}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <textarea
+                ref={textareaRef}
+                value={value}
+                onChange={handleChange}
+                onKeyDown={handleKeyDown}
+                onPaste={handlePaste}
+                onScroll={syncScroll}
+                placeholder={"Schreibe deinen Inhalt...\nTippe / für Blöcke · Bilder per Drag & Drop oder Strg+V einfügen"}
+                className={`w-full rounded-lg border border-input bg-background pl-12 pr-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
+                  isFullscreen ? "h-full resize-none" : viewMode === "split" ? "min-h-[500px] resize-none" : "min-h-[300px] resize-none"
+                }`}
+                style={{ lineHeight: "22px" }}
+              />
+            </div>
 
             {/* Slash Command Menu */}
             {showMenu && flatFiltered.length > 0 && (
@@ -2219,6 +2306,20 @@ export function SlashEditor({
             )}
           </div>
         )}
+      </div>
+
+      {/* Status bar */}
+      <div className="flex items-center justify-between px-2 text-[11px] text-muted-foreground/60">
+        <div className="flex items-center gap-3">
+          <span>{wordCount} Wörter</span>
+          <span>{charCount} Zeichen</span>
+          <span>{lineCount} Zeilen</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <span>Tab = Einrücken</span>
+          <span>/ = Blöcke</span>
+          {isFullscreen && <span>Esc = Vollbild beenden</span>}
+        </div>
       </div>
 
       {/* Modals */}
