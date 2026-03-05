@@ -59,6 +59,9 @@ export default function EditPostPage() {
   }, [id]);
 
   function handlePostTypeChange(value: string) {
+    if (content.trim() && !window.confirm("Der Inhalt wird beim Typ-Wechsel zurückgesetzt. Fortfahren?")) {
+      return;
+    }
     setPostType(value);
     setEditorType(value === "webpage" ? "HTML" : "MARKDOWN");
     setContent("");

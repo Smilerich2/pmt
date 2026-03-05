@@ -207,6 +207,100 @@ export default function AdminCategoriesPage() {
     return cat.parent ? `${cat.parent.title} → ${cat.title}` : cat.title;
   }
 
+  function renderCategoryTree(cat: Category, depth: number): React.ReactNode {
+    const children = categories.filter((c) => c.parentId === cat.id);
+    const siblings = categories.filter((c) => c.parentId === cat.parentId);
+    const idx = siblings.findIndex((c) => c.id === cat.id);
+
+    return (
+      <div key={cat.id}>
+        <div
+          className={`flex items-center gap-4 p-4 rounded-xl bg-card border border-border/60 ${depth > 0 ? "ml-8 border-l-2 border-l-primary/20" : ""}`}
+        >
+          {cat.image ? (
+            cat.image.startsWith("linear-gradient") ? (
+              <div
+                className="w-16 h-12 rounded-lg shrink-0"
+                style={{ background: cat.image }}
+              />
+            ) : (
+              <img
+                src={cat.image}
+                alt={cat.title}
+                className="w-16 h-12 rounded-lg object-cover shrink-0"
+              />
+            )
+          ) : (
+            <div className="w-16 h-12 rounded-lg bg-muted flex items-center justify-center shrink-0">
+              <FolderOpen className="w-5 h-5 text-muted-foreground/50" />
+            </div>
+          )}
+
+          <div className="flex-1 min-w-0">
+            <p className={`font-semibold text-foreground truncate ${depth === 0 ? "text-base" : "text-sm"}`}>
+              {cat.title}
+            </p>
+            {cat.description && (
+              <p className="text-sm text-muted-foreground truncate">{cat.description}</p>
+            )}
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {cat._count.children} Unterkategorien &middot; {cat._count.posts} Beiträge
+            </p>
+          </div>
+
+          <div className="flex items-center gap-0.5 shrink-0">
+            <div className="flex flex-col mr-1">
+              <button
+                onClick={() => handleReorder(cat.id, "up")}
+                disabled={idx === 0}
+                className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent disabled:opacity-20 disabled:hover:bg-transparent transition-colors"
+                title="Nach oben"
+              >
+                <ChevronUp className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => handleReorder(cat.id, "down")}
+                disabled={idx === siblings.length - 1}
+                className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent disabled:opacity-20 disabled:hover:bg-transparent transition-colors"
+                title="Nach unten"
+              >
+                <ChevronDown className="w-4 h-4" />
+              </button>
+            </div>
+            {cat._count.posts > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => openMoveDialog(cat)}
+                className="text-muted-foreground hover:text-foreground"
+                title="Beiträge verschieben"
+              >
+                <ArrowRightLeft className="w-4 h-4" />
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => openEdit(cat)}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <Pencil className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => openDeleteDialog(cat)}
+              className="text-muted-foreground hover:text-destructive"
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+        {children.map((child) => renderCategoryTree(child, depth + 1))}
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -293,109 +387,9 @@ export default function AdminCategoriesPage() {
         </Dialog>
       </div>
 
-      {/* Category List */}
+      {/* Category Tree */}
       <div className="space-y-2">
-        {categories.map((cat) => (
-          <div
-            key={cat.id}
-            className="flex items-center gap-4 p-4 rounded-xl bg-card border border-border/60"
-          >
-            {cat.image ? (
-              cat.image.startsWith("linear-gradient") ? (
-                <div
-                  className="w-16 h-12 rounded-lg shrink-0"
-                  style={{ background: cat.image }}
-                />
-              ) : (
-                <img
-                  src={cat.image}
-                  alt={cat.title}
-                  className="w-16 h-12 rounded-lg object-cover shrink-0"
-                />
-              )
-            ) : (
-              <div className="w-16 h-12 rounded-lg bg-muted flex items-center justify-center shrink-0">
-                <FolderOpen className="w-5 h-5 text-muted-foreground/50" />
-              </div>
-            )}
-
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <p className="font-semibold text-foreground truncate">
-                  {cat.title}
-                </p>
-                {cat.parent && (
-                  <span className="text-xs text-muted-foreground bg-accent px-2 py-0.5 rounded">
-                    in {cat.parent.title}
-                  </span>
-                )}
-              </div>
-              {cat.description && (
-                <p className="text-sm text-muted-foreground truncate">{cat.description}</p>
-              )}
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {cat._count.children} Unterkategorien &middot; {cat._count.posts} Beiträge
-              </p>
-            </div>
-
-            <div className="flex items-center gap-0.5 shrink-0">
-              {/* Reorder buttons */}
-              <div className="flex flex-col mr-1">
-                {(() => {
-                  const siblings = categories.filter((c) => c.parentId === cat.parentId);
-                  const idx = siblings.findIndex((c) => c.id === cat.id);
-                  return (
-                    <>
-                      <button
-                        onClick={() => handleReorder(cat.id, "up")}
-                        disabled={idx === 0}
-                        className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent disabled:opacity-20 disabled:hover:bg-transparent transition-colors"
-                        title="Nach oben"
-                      >
-                        <ChevronUp className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleReorder(cat.id, "down")}
-                        disabled={idx === siblings.length - 1}
-                        className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent disabled:opacity-20 disabled:hover:bg-transparent transition-colors"
-                        title="Nach unten"
-                      >
-                        <ChevronDown className="w-4 h-4" />
-                      </button>
-                    </>
-                  );
-                })()}
-              </div>
-              {cat._count.posts > 0 && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => openMoveDialog(cat)}
-                  className="text-muted-foreground hover:text-foreground"
-                  title="Beiträge verschieben"
-                >
-                  <ArrowRightLeft className="w-4 h-4" />
-                </Button>
-              )}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => openEdit(cat)}
-                className="text-muted-foreground hover:text-foreground"
-              >
-                <Pencil className="w-4 h-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => openDeleteDialog(cat)}
-                className="text-muted-foreground hover:text-destructive"
-              >
-                <Trash2 className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
-        ))}
+        {topLevel.map((cat) => renderCategoryTree(cat, 0))}
       </div>
 
       {/* ─── Delete Confirmation Dialog ─── */}

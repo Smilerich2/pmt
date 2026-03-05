@@ -4,10 +4,11 @@ import { cookies } from "next/headers";
 export const dynamic = "force-dynamic";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Calendar, Clock, Pencil } from "lucide-react";
+import { ArrowLeft, Calendar, Clock, Pencil, ChevronLeft, ChevronRight } from "lucide-react";
 import { MarkdownRenderer } from "@/components/markdown-renderer";
 import { HtmlPostViewer } from "@/components/html-post-viewer";
 import { SiteHeader } from "@/components/site-header";
+import { stripAccent } from "@/lib/utils";
 import { ScrollToTop } from "@/components/scroll-to-top";
 import { BackToTopButton } from "@/components/back-to-top-button";
 
@@ -40,6 +41,15 @@ export default async function PostSeite({
   ]);
 
   if (!post || !post.published) notFound();
+
+  const siblingPosts = await prisma.post.findMany({
+    where: { categoryId: post.categoryId, published: true },
+    orderBy: { position: "asc" },
+    select: { slug: true, title: true },
+  });
+  const currentIndex = siblingPosts.findIndex((p) => p.slug === slug);
+  const prevPost = currentIndex > 0 ? siblingPosts[currentIndex - 1] : null;
+  const nextPost = currentIndex < siblingPosts.length - 1 ? siblingPosts[currentIndex + 1] : null;
 
   const cookieStore = await cookies();
   const isAdmin = cookieStore.get("auth-role")?.value === "admin";
@@ -190,6 +200,40 @@ export default async function PostSeite({
             <BackToTopButton />
           </div>
         </div>
+
+        {/* Prev / Next Post Navigation */}
+        {(prevPost || nextPost) && (
+          <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {prevPost ? (
+              <Link
+                href={`/post/${prevPost.slug}`}
+                className="group flex items-center gap-3 p-4 rounded-xl border border-border/60 bg-card hover:bg-accent/50 transition-colors"
+              >
+                <ChevronLeft className="w-5 h-5 text-muted-foreground group-hover:text-primary shrink-0 transition-colors" />
+                <div className="min-w-0">
+                  <p className="text-xs text-muted-foreground">Vorheriger</p>
+                  <p className="text-sm font-medium text-foreground truncate">{stripAccent(prevPost.title)}</p>
+                </div>
+              </Link>
+            ) : (
+              <div />
+            )}
+            {nextPost ? (
+              <Link
+                href={`/post/${nextPost.slug}`}
+                className="group flex items-center justify-end gap-3 p-4 rounded-xl border border-border/60 bg-card hover:bg-accent/50 transition-colors text-right"
+              >
+                <div className="min-w-0">
+                  <p className="text-xs text-muted-foreground">Nächster</p>
+                  <p className="text-sm font-medium text-foreground truncate">{stripAccent(nextPost.title)}</p>
+                </div>
+                <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary shrink-0 transition-colors" />
+              </Link>
+            ) : (
+              <div />
+            )}
+          </div>
+        )}
       </div>
 
       <ScrollToTop />

@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { GraduationCap } from "lucide-react";
 import { LogoutButton } from "./logout-button";
 import { GlossaryQuickAccess } from "./glossary-quick-access";
+import { HeaderSearch } from "./header-search";
 
 export async function SiteHeader() {
   const cookieStore = await cookies();
@@ -26,6 +27,7 @@ export async function SiteHeader() {
         </Link>
 
         <div className="flex items-center gap-4">
+          <HeaderSearch />
           <Link
             href="/glossar"
             className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors hidden sm:block"
