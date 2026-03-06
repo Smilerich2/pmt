@@ -1813,6 +1813,7 @@ export function SlashEditor({
   // "edit" = nur Editor, "split" = Editor + Vorschau, "preview" = nur Vorschau
   const [viewMode, setViewMode] = useState<"edit" | "split" | "preview">("edit");
   const gutterRef = useRef<HTMLDivElement>(null);
+  const highlightRef = useRef<HTMLDivElement>(null);
   const previewRef = useRef<HTMLDivElement>(null);
   const [debouncedContent, setDebouncedContent] = useState(value);
   const scrollSyncSource = useRef<"editor" | "preview" | null>(null);
@@ -2330,9 +2331,13 @@ export function SlashEditor({
       ta.style.height = "";
     }
 
-    // Re-sync gutter after height change
+    // Re-sync gutter + highlight after height change
+    const scrollY = ta.scrollTop;
     if (gutterRef.current) {
-      gutterRef.current.style.transform = `translateY(-${ta.scrollTop}px)`;
+      gutterRef.current.style.transform = `translateY(-${scrollY}px)`;
+    }
+    if (highlightRef.current) {
+      highlightRef.current.style.transform = `translateY(-${scrollY}px)`;
     }
   }, [value, viewMode, isFullscreen]);
 
@@ -2356,9 +2361,13 @@ export function SlashEditor({
   function syncEditorScroll() {
     const ta = textareaRef.current;
     if (!ta) return;
-    // Sync gutter
+    // Sync gutter + highlight
+    const scrollY = ta.scrollTop;
     if (gutterRef.current) {
-      gutterRef.current.style.transform = `translateY(-${ta.scrollTop}px)`;
+      gutterRef.current.style.transform = `translateY(-${scrollY}px)`;
+    }
+    if (highlightRef.current) {
+      highlightRef.current.style.transform = `translateY(-${scrollY}px)`;
     }
     // Sync preview (proportional scroll)
     if (scrollSyncSource.current === "preview") return;
@@ -2379,8 +2388,12 @@ export function SlashEditor({
     if (preview && ta && viewMode === "split") {
       const previewRatio = preview.scrollTop / (preview.scrollHeight - preview.clientHeight || 1);
       ta.scrollTop = previewRatio * (ta.scrollHeight - ta.clientHeight);
+      const scrollY = ta.scrollTop;
       if (gutterRef.current) {
-        gutterRef.current.style.transform = `translateY(-${ta.scrollTop}px)`;
+        gutterRef.current.style.transform = `translateY(-${scrollY}px)`;
+      }
+      if (highlightRef.current) {
+        highlightRef.current.style.transform = `translateY(-${scrollY}px)`;
       }
     }
     requestAnimationFrame(() => { scrollSyncSource.current = null; });
@@ -2581,15 +2594,19 @@ export function SlashEditor({
                 </div>
               </div>
               {/* Active line highlight overlay */}
-              {activeLine >= 0 && (
-                <div
-                  className="absolute left-10 right-0 pointer-events-none z-[5] bg-primary/[0.03] border-l-2 border-primary/20"
-                  style={{
-                    top: `${12 + activeLine * 22}px`,
-                    height: "22px",
-                  }}
-                />
-              )}
+              <div className="absolute left-10 right-0 top-0 bottom-0 overflow-hidden pointer-events-none z-[5]">
+                <div ref={highlightRef} className="pt-3">
+                  {activeLine >= 0 && (
+                    <div
+                      className="bg-primary/[0.04] border-l-2 border-primary/20"
+                      style={{
+                        marginTop: `${activeLine * 22}px`,
+                        height: "22px",
+                      }}
+                    />
+                  )}
+                </div>
+              </div>
 
               <textarea
                 ref={textareaRef}
