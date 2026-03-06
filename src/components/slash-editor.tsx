@@ -1809,11 +1809,9 @@ export function SlashEditor({
   const [showHelp, setShowHelp] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isFocusMode, setIsFocusMode] = useState(false);
-  const [activeLine, setActiveLine] = useState(-1);
   // "edit" = nur Editor, "split" = Editor + Vorschau, "preview" = nur Vorschau
   const [viewMode, setViewMode] = useState<"edit" | "split" | "preview">("edit");
   const gutterRef = useRef<HTMLDivElement>(null);
-  const highlightRef = useRef<HTMLDivElement>(null);
   const previewRef = useRef<HTMLDivElement>(null);
   const [debouncedContent, setDebouncedContent] = useState(value);
   const scrollSyncSource = useRef<"editor" | "preview" | null>(null);
@@ -2141,10 +2139,6 @@ export function SlashEditor({
     const pos = e.target.selectionStart;
     onChange(newValue);
 
-    // Track active line
-    const lineNum = newValue.slice(0, pos).split("\n").length - 1;
-    setActiveLine(lineNum);
-
     const charBefore = pos >= 2 ? newValue[pos - 2] : "\n";
     const currentChar = newValue[pos - 1];
 
@@ -2186,17 +2180,6 @@ export function SlashEditor({
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, [showMenu]);
-
-  // ─── Active line tracking ───
-
-  function updateActiveLine() {
-    const ta = textareaRef.current;
-    if (!ta) return;
-    const cursor = ta.selectionStart;
-    const textBefore = value.slice(0, cursor);
-    const line = textBefore.split("\n").length - 1;
-    setActiveLine(line);
-  }
 
   // ─── Block detection & movement ───
 
@@ -2336,9 +2319,6 @@ export function SlashEditor({
     if (gutterRef.current) {
       gutterRef.current.style.transform = `translateY(-${scrollY}px)`;
     }
-    if (highlightRef.current) {
-      highlightRef.current.style.transform = `translateY(-${scrollY}px)`;
-    }
   }, [value, viewMode, isFullscreen]);
 
   // Escape exits focus mode / fullscreen
@@ -2366,9 +2346,6 @@ export function SlashEditor({
     if (gutterRef.current) {
       gutterRef.current.style.transform = `translateY(-${scrollY}px)`;
     }
-    if (highlightRef.current) {
-      highlightRef.current.style.transform = `translateY(-${scrollY}px)`;
-    }
     // Sync preview (proportional scroll)
     if (scrollSyncSource.current === "preview") return;
     scrollSyncSource.current = "editor";
@@ -2391,9 +2368,6 @@ export function SlashEditor({
       const scrollY = ta.scrollTop;
       if (gutterRef.current) {
         gutterRef.current.style.transform = `translateY(-${scrollY}px)`;
-      }
-      if (highlightRef.current) {
-        highlightRef.current.style.transform = `translateY(-${scrollY}px)`;
       }
     }
     requestAnimationFrame(() => { scrollSyncSource.current = null; });
@@ -2583,28 +2557,12 @@ export function SlashEditor({
                   {value.split("\n").map((_, i) => (
                     <div
                       key={i}
-                      className={`text-right pr-2 text-[11px] font-mono transition-colors ${
-                        i === activeLine ? "text-primary font-semibold bg-primary/5" : "text-muted-foreground/40"
-                      }`}
+                      className="text-right pr-2 text-[11px] font-mono text-muted-foreground/40"
                       style={{ lineHeight: "22px" }}
                     >
                       {i + 1}
                     </div>
                   ))}
-                </div>
-              </div>
-              {/* Active line highlight overlay */}
-              <div className="absolute left-10 right-0 top-0 bottom-0 overflow-hidden pointer-events-none z-[5]">
-                <div ref={highlightRef} className="pt-3">
-                  {activeLine >= 0 && (
-                    <div
-                      className="bg-primary/[0.04] border-l-2 border-primary/20"
-                      style={{
-                        marginTop: `${activeLine * 22}px`,
-                        height: "22px",
-                      }}
-                    />
-                  )}
                 </div>
               </div>
 
@@ -2613,15 +2571,13 @@ export function SlashEditor({
                 value={value}
                 onChange={handleChange}
                 onKeyDown={handleKeyDown}
-                onKeyUp={updateActiveLine}
-                onClick={updateActiveLine}
                 onPaste={handlePaste}
                 onScroll={syncEditorScroll}
                 placeholder={"Schreibe deinen Inhalt...\nTippe / für Blöcke · Bilder per Drag & Drop oder Strg+V einfügen"}
                 className={`w-full rounded-lg border border-input bg-background pl-12 pr-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
                   isFullscreen ? "h-full resize-none" : viewMode === "split" ? "min-h-[500px] max-h-[700px] resize-none" : "min-h-[300px] resize-none"
                 }`}
-                style={{ lineHeight: "22px" }}
+                style={{ lineHeight: "22px", whiteSpace: "pre", overflowX: "auto" }}
               />
             </div>
 
