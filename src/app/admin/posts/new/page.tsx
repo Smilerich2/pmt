@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useState, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, Loader2, Save, ChevronDown, ChevronUp, Settings } from "lucide-react";
+import { ArrowLeft, Loader2, Save, ChevronDown, ChevronUp, Settings, Check } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,6 +37,7 @@ function NewPostContent() {
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [saving, setSaving] = useState(false);
+  const [savedToast, setSavedToast] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   const [title, setTitle] = useState("");
@@ -126,11 +127,9 @@ function NewPostContent() {
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [title, content]);
 
-  const handleSave = useCallback(async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!title || !categoryId || saving) return;
+  const doSave = useCallback(async (): Promise<string | null> => {
+    if (!title || !categoryId || saving) return null;
     setSaving(true);
-
     try {
       const res = await fetch("/api/posts", {
         method: "POST",
@@ -148,29 +147,46 @@ function NewPostContent() {
           published,
         }),
       });
-
       if (res.ok) {
         localStorage.removeItem(DRAFT_KEY);
-        router.push("/admin/posts");
+        const data = await res.json();
+        return data.id;
       }
+      return null;
     } catch {
       alert("Fehler beim Speichern");
+      return null;
     } finally {
       setSaving(false);
     }
-  }, [title, description, content, editorType, categoryId, coverImage, postType, duration, tags, published, saving, router]);
+  }, [title, description, content, editorType, categoryId, coverImage, postType, duration, tags, published, saving]);
+
+  // Quiet save (Cmd+S) — redirect to edit page to continue working
+  const handleQuietSave = useCallback(async () => {
+    const postId = await doSave();
+    if (postId) {
+      router.replace(`/admin/posts/${postId}`);
+    }
+  }, [doSave, router]);
+
+  // Button save — save and navigate to list
+  const handleSaveAndClose = useCallback(async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const postId = await doSave();
+    if (postId) router.push("/admin/posts");
+  }, [doSave, router]);
 
   // Cmd+S / Ctrl+S to save
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key === "s") {
         e.preventDefault();
-        handleSave();
+        handleQuietSave();
       }
     }
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [handleSave]);
+  }, [handleQuietSave]);
 
   const isWebpage = editorType === "HTML";
 
@@ -208,7 +224,7 @@ function NewPostContent() {
         </div>
       )}
 
-      <form onSubmit={handleSave} className="space-y-6">
+      <form onSubmit={handleSaveAndClose} className="space-y-6">
         {/* Titel & Kategorie — always visible */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
@@ -355,14 +371,20 @@ function NewPostContent() {
           </label>
 
           <div className="flex items-center gap-3">
+            {savedToast && (
+              <span className="flex items-center gap-1.5 text-xs text-emerald-600 font-medium animate-in fade-in">
+                <Check className="w-3.5 h-3.5" />
+                Gespeichert
+              </span>
+            )}
             <span className="text-xs text-muted-foreground hidden sm:block">⌘S zum Speichern</span>
-            <Button onClick={() => handleSave()} disabled={saving || !title || !categoryId}>
+            <Button onClick={() => handleSaveAndClose()} disabled={saving || !title || !categoryId}>
               {saving ? (
                 <Loader2 className="w-4 h-4 animate-spin mr-2" />
               ) : (
                 <Save className="w-4 h-4 mr-2" />
               )}
-              Speichern
+              Speichern & Schließen
             </Button>
           </div>
         </div>

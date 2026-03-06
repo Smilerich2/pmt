@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { ArrowLeft, Loader2, Save, ExternalLink, ChevronDown, ChevronUp, Settings } from "lucide-react";
+import { ArrowLeft, Loader2, Save, ExternalLink, ChevronDown, ChevronUp, Settings, Check } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +26,7 @@ export default function EditPostPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [savedToast, setSavedToast] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   const [title, setTitle] = useState("");
@@ -83,11 +84,9 @@ export default function EditPostPage() {
     setContent("");
   }
 
-  const handleSave = useCallback(async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!title || !categoryId || saving) return;
+  const doSave = useCallback(async (): Promise<boolean> => {
+    if (!title || !categoryId || saving) return false;
     setSaving(true);
-
     try {
       const res = await fetch(`/api/posts/${id}`, {
         method: "PUT",
@@ -105,28 +104,46 @@ export default function EditPostPage() {
           published,
         }),
       });
-
       if (res.ok) {
-        router.push("/admin/posts");
+        setOriginalContent(content);
+        return true;
       }
+      return false;
     } catch {
       alert("Fehler beim Speichern");
+      return false;
     } finally {
       setSaving(false);
     }
-  }, [id, title, description, content, editorType, categoryId, coverImage, postType, duration, tags, published, saving, router]);
+  }, [id, title, description, content, editorType, categoryId, coverImage, postType, duration, tags, published, saving]);
 
-  // Cmd+S / Ctrl+S to save
+  // Quiet save (Cmd+S) — stay on page, show toast
+  const handleQuietSave = useCallback(async () => {
+    const ok = await doSave();
+    if (ok) {
+      setSavedToast(true);
+      setTimeout(() => setSavedToast(false), 2000);
+    }
+  }, [doSave]);
+
+  // Button save — save and navigate back
+  const handleSaveAndClose = useCallback(async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const ok = await doSave();
+    if (ok) router.push("/admin/posts");
+  }, [doSave, router]);
+
+  // Cmd+S / Ctrl+S to save quietly
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key === "s") {
         e.preventDefault();
-        handleSave();
+        handleQuietSave();
       }
     }
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [handleSave]);
+  }, [handleQuietSave]);
 
   if (loading) {
     return (
@@ -149,7 +166,7 @@ export default function EditPostPage() {
         <h1 className="text-2xl font-bold text-foreground">Beitrag bearbeiten</h1>
       </div>
 
-      <form onSubmit={handleSave} className="space-y-6">
+      <form onSubmit={handleSaveAndClose} className="space-y-6">
         {/* Titel & Kategorie — always visible */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
@@ -295,6 +312,12 @@ export default function EditPostPage() {
           </label>
 
           <div className="flex items-center gap-3">
+            {savedToast && (
+              <span className="flex items-center gap-1.5 text-xs text-emerald-600 font-medium animate-in fade-in">
+                <Check className="w-3.5 h-3.5" />
+                Gespeichert
+              </span>
+            )}
             <span className="text-xs text-muted-foreground hidden sm:block">⌘S zum Speichern</span>
             {slug && (
               <Link
@@ -306,13 +329,13 @@ export default function EditPostPage() {
                 Vorschau
               </Link>
             )}
-            <Button onClick={() => handleSave()} disabled={saving || !title || !categoryId}>
+            <Button onClick={() => handleSaveAndClose()} disabled={saving || !title || !categoryId}>
               {saving ? (
                 <Loader2 className="w-4 h-4 animate-spin mr-2" />
               ) : (
                 <Save className="w-4 h-4 mr-2" />
               )}
-              Speichern
+              Speichern & Schließen
             </Button>
           </div>
         </div>

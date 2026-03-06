@@ -44,6 +44,7 @@ import {
   Columns2,
   ArrowUpDown,
   CopyPlus,
+  Focus,
   type LucideIcon,
 } from "lucide-react";
 
@@ -1807,9 +1808,20 @@ export function SlashEditor({
   const [uploadingInline, setUploadingInline] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isFocusMode, setIsFocusMode] = useState(false);
+  const [activeLine, setActiveLine] = useState(-1);
   // "edit" = nur Editor, "split" = Editor + Vorschau, "preview" = nur Vorschau
   const [viewMode, setViewMode] = useState<"edit" | "split" | "preview">("edit");
   const gutterRef = useRef<HTMLDivElement>(null);
+  const previewRef = useRef<HTMLDivElement>(null);
+  const [debouncedContent, setDebouncedContent] = useState(value);
+  const scrollSyncSource = useRef<"editor" | "preview" | null>(null);
+
+  // Debounce preview rendering (300ms)
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedContent(value), 300);
+    return () => clearTimeout(timer);
+  }, [value]);
 
   const filtered = slashCommands.filter(
     (cmd) =>
@@ -2058,6 +2070,11 @@ export function SlashEditor({
       wrapSelection("*", "*", "kursiver Text");
       return;
     }
+    if (mod && e.key === "k") {
+      e.preventDefault();
+      wrapLinkSelection();
+      return;
+    }
     if (mod && e.key === "d") {
       e.preventDefault();
       duplicateLineOrBlock();
@@ -2123,6 +2140,10 @@ export function SlashEditor({
     const pos = e.target.selectionStart;
     onChange(newValue);
 
+    // Track active line
+    const lineNum = newValue.slice(0, pos).split("\n").length - 1;
+    setActiveLine(lineNum);
+
     const charBefore = pos >= 2 ? newValue[pos - 2] : "\n";
     const currentChar = newValue[pos - 1];
 
@@ -2164,6 +2185,17 @@ export function SlashEditor({
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, [showMenu]);
+
+  // ─── Active line tracking ───
+
+  function updateActiveLine() {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    const cursor = ta.selectionStart;
+    const textBefore = value.slice(0, cursor);
+    const line = textBefore.split("\n").length - 1;
+    setActiveLine(line);
+  }
 
   // ─── Block detection & movement ───
 
@@ -2281,10 +2313,10 @@ export function SlashEditor({
     }
   }, [value, onChange, getBlockAtCursor]);
 
-  // Auto-resize textarea
+  // Auto-resize textarea (only in edit-only mode, not split/fullscreen)
   useEffect(() => {
     const ta = textareaRef.current;
-    if (!ta || viewMode === "preview" || isFullscreen) return;
+    if (!ta || viewMode !== "edit" || isFullscreen) return;
     ta.style.height = "auto";
     ta.style.height = ta.scrollHeight + "px";
   }, [value, viewMode, isFullscreen]);
@@ -2298,22 +2330,54 @@ export function SlashEditor({
     }
   }, [isFullscreen]);
 
-  // Escape exits fullscreen
+  // Escape exits focus mode / fullscreen
   useEffect(() => {
     if (!isFullscreen) return;
     function handleEsc(e: KeyboardEvent) {
       if (e.key === "Escape" && !showMenu && !modal && !showHelp) {
-        setIsFullscreen(false);
+        if (isFocusMode) {
+          setIsFocusMode(false);
+          setIsFullscreen(false);
+        } else {
+          setIsFullscreen(false);
+        }
       }
     }
     document.addEventListener("keydown", handleEsc);
     return () => document.removeEventListener("keydown", handleEsc);
-  }, [isFullscreen, showMenu, modal, showHelp]);
+  }, [isFullscreen, isFocusMode, showMenu, modal, showHelp]);
 
-  function syncScroll() {
-    if (gutterRef.current && textareaRef.current) {
-      gutterRef.current.style.transform = `translateY(-${textareaRef.current.scrollTop}px)`;
+  function syncEditorScroll() {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    // Sync gutter
+    if (gutterRef.current) {
+      gutterRef.current.style.transform = `translateY(-${ta.scrollTop}px)`;
     }
+    // Sync preview (proportional scroll)
+    if (scrollSyncSource.current === "preview") return;
+    scrollSyncSource.current = "editor";
+    const preview = previewRef.current;
+    if (preview && viewMode === "split") {
+      const editorRatio = ta.scrollTop / (ta.scrollHeight - ta.clientHeight || 1);
+      preview.scrollTop = editorRatio * (preview.scrollHeight - preview.clientHeight);
+    }
+    requestAnimationFrame(() => { scrollSyncSource.current = null; });
+  }
+
+  function syncPreviewScroll() {
+    if (scrollSyncSource.current === "editor") return;
+    scrollSyncSource.current = "preview";
+    const preview = previewRef.current;
+    const ta = textareaRef.current;
+    if (preview && ta && viewMode === "split") {
+      const previewRatio = preview.scrollTop / (preview.scrollHeight - preview.clientHeight || 1);
+      ta.scrollTop = previewRatio * (ta.scrollHeight - ta.clientHeight);
+      if (gutterRef.current) {
+        gutterRef.current.style.transform = `translateY(-${ta.scrollTop}px)`;
+      }
+    }
+    requestAnimationFrame(() => { scrollSyncSource.current = null; });
   }
 
   const lineCount = value.split("\n").length;
@@ -2323,8 +2387,8 @@ export function SlashEditor({
   return (
     <div className={isFullscreen ? "fixed inset-0 z-50 bg-background flex flex-col p-4 space-y-2" : "space-y-2"}>
       {/* Toolbar */}
-      <div className="flex items-center gap-1 p-1 rounded-lg bg-accent/50 border border-border/40">
-        {viewMode !== "preview" && (
+      <div className={`flex items-center gap-1 p-1 rounded-lg border border-border/40 transition-colors ${isFocusMode ? "bg-transparent border-transparent" : "bg-accent/50"}`}>
+        {viewMode !== "preview" && !isFocusMode && (
           <>
             <ToolbarButton
               icon={Image}
@@ -2350,12 +2414,12 @@ export function SlashEditor({
             <div className="w-px h-5 bg-border/60 mx-1" />
             <FormatButton
               icon={Bold}
-              label="Fett (Ctrl+B)"
+              label="Fett (⌘B)"
               onMouseDown={() => wrapSelection("**", "**", "fetter Text")}
             />
             <FormatButton
               icon={Italic}
-              label="Kursiv (Ctrl+I)"
+              label="Kursiv (⌘I)"
               onMouseDown={() => wrapSelection("*", "*", "kursiver Text")}
             />
             <FormatButton
@@ -2370,7 +2434,7 @@ export function SlashEditor({
             />
             <FormatButton
               icon={Link}
-              label="Link"
+              label="Link (⌘K)"
               onMouseDown={() => wrapLinkSelection()}
             />
             <div className="w-px h-5 bg-border/60 mx-1" />
@@ -2396,67 +2460,87 @@ export function SlashEditor({
         )}
 
         {/* View Mode Toggle */}
-        <div className="flex items-center rounded-md bg-background border border-border/40 p-0.5">
-          <button
-            type="button"
-            onClick={() => setViewMode("edit")}
-            className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium transition-colors ${
-              viewMode === "edit"
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-            title="Nur Editor"
-          >
-            <Pencil className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Editor</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setViewMode("split")}
-            className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium transition-colors ${
-              viewMode === "split"
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-            title="Editor & Vorschau"
-          >
-            <PanelLeft className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Split</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setViewMode("preview")}
-            className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium transition-colors ${
-              viewMode === "preview"
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-            title="Nur Vorschau"
-          >
-            <Eye className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Vorschau</span>
-          </button>
-        </div>
+        {!isFocusMode && (
+          <div className="flex items-center rounded-md bg-background border border-border/40 p-0.5">
+            <button
+              type="button"
+              onClick={() => setViewMode("edit")}
+              className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium transition-colors ${
+                viewMode === "edit"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+              title="Nur Editor"
+            >
+              <Pencil className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Editor</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("split")}
+              className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium transition-colors ${
+                viewMode === "split"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+              title="Editor & Vorschau"
+            >
+              <PanelLeft className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Split</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("preview")}
+              className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium transition-colors ${
+                viewMode === "preview"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+              title="Nur Vorschau"
+            >
+              <Eye className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Vorschau</span>
+            </button>
+          </div>
+        )}
 
         <ToolbarButton
-          icon={isFullscreen ? Minimize2 : Maximize2}
-          label={isFullscreen ? "Vollbild beenden" : "Vollbild"}
-          onClick={() => setIsFullscreen(!isFullscreen)}
+          icon={Focus}
+          label={isFocusMode ? "Fokus-Modus beenden" : "Fokus-Modus"}
+          onClick={() => {
+            if (!isFocusMode) {
+              setIsFocusMode(true);
+              setIsFullscreen(true);
+              setViewMode("edit");
+            } else {
+              setIsFocusMode(false);
+            }
+          }}
+          active={isFocusMode}
         />
-        <div className="w-px h-5 bg-border/60 mx-1" />
-        <ToolbarButton
-          icon={CircleHelp}
-          label="Hilfe"
-          onClick={() => setShowHelp(true)}
-        />
+        {!isFocusMode && (
+          <ToolbarButton
+            icon={isFullscreen ? Minimize2 : Maximize2}
+            label={isFullscreen ? "Vollbild beenden" : "Vollbild"}
+            onClick={() => setIsFullscreen(!isFullscreen)}
+          />
+        )}
+        {!isFocusMode && <div className="w-px h-5 bg-border/60 mx-1" />}
+        {!isFocusMode && (
+          <ToolbarButton
+            icon={CircleHelp}
+            label="Hilfe"
+            onClick={() => setShowHelp(true)}
+          />
+        )}
       </div>
 
       {/* Editor + Preview Area */}
-      <div className={`${viewMode === "split" ? "grid grid-cols-2 gap-3" : ""} ${isFullscreen ? "flex-1 min-h-0" : ""}`}>
+      <div className={`${viewMode === "split" ? "grid grid-cols-2 gap-3" : ""} ${isFullscreen ? "flex-1 min-h-0 overflow-hidden" : ""}`}>
         {/* Editor Panel */}
         {viewMode !== "preview" && (
           <div
-            className={`relative rounded-lg transition-colors ${isFullscreen ? "h-full flex flex-col" : ""} ${
+            className={`relative rounded-lg transition-colors ${isFullscreen ? "h-full flex flex-col" : ""} ${isFullscreen && viewMode === "split" ? "overflow-hidden" : ""} ${
               isDragging ? "ring-2 ring-primary ring-offset-2" : ""
             }`}
             onDragOver={handleDragOver}
@@ -2478,23 +2562,41 @@ export function SlashEditor({
               <div className="absolute left-0 top-0 bottom-0 w-10 overflow-hidden select-none pointer-events-none border-r border-border/20 bg-muted/20 rounded-l-lg z-10">
                 <div ref={gutterRef} className="pt-3">
                   {value.split("\n").map((_, i) => (
-                    <div key={i} className="text-right pr-2 text-[11px] text-muted-foreground/40 font-mono" style={{ lineHeight: "22px" }}>
+                    <div
+                      key={i}
+                      className={`text-right pr-2 text-[11px] font-mono transition-colors ${
+                        i === activeLine ? "text-primary font-semibold bg-primary/5" : "text-muted-foreground/40"
+                      }`}
+                      style={{ lineHeight: "22px" }}
+                    >
                       {i + 1}
                     </div>
                   ))}
                 </div>
               </div>
+              {/* Active line highlight overlay */}
+              {activeLine >= 0 && (
+                <div
+                  className="absolute left-10 right-0 pointer-events-none z-[5] bg-primary/[0.03] border-l-2 border-primary/20"
+                  style={{
+                    top: `${12 + activeLine * 22}px`,
+                    height: "22px",
+                  }}
+                />
+              )}
 
               <textarea
                 ref={textareaRef}
                 value={value}
                 onChange={handleChange}
                 onKeyDown={handleKeyDown}
+                onKeyUp={updateActiveLine}
+                onClick={updateActiveLine}
                 onPaste={handlePaste}
-                onScroll={syncScroll}
+                onScroll={syncEditorScroll}
                 placeholder={"Schreibe deinen Inhalt...\nTippe / für Blöcke · Bilder per Drag & Drop oder Strg+V einfügen"}
                 className={`w-full rounded-lg border border-input bg-background pl-12 pr-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
-                  isFullscreen ? "h-full resize-none" : viewMode === "split" ? "min-h-[500px] resize-none" : "min-h-[300px] resize-none"
+                  isFullscreen ? "h-full resize-none" : viewMode === "split" ? "min-h-[500px] max-h-[700px] resize-none" : "min-h-[300px] resize-none"
                 }`}
                 style={{ lineHeight: "22px" }}
               />
@@ -2564,13 +2666,19 @@ export function SlashEditor({
         {/* Preview Panel */}
         {(viewMode === "split" || viewMode === "preview") && (
           <div
+            ref={previewRef}
+            onScroll={viewMode === "split" ? syncPreviewScroll : undefined}
             className={`rounded-lg border border-border/60 bg-card overflow-y-auto ${
-              viewMode === "split" ? "min-h-[500px] max-h-[700px]" : "min-h-[300px]"
+              isFullscreen
+                ? "h-full"
+                : viewMode === "split"
+                  ? "min-h-[500px] max-h-[700px]"
+                  : "min-h-[300px]"
             }`}
           >
             {value.trim() ? (
-              <div className="p-5">
-                <MarkdownRenderer content={value} />
+              <div className="p-6">
+                <MarkdownRenderer content={debouncedContent} />
               </div>
             ) : (
               <div className="flex items-center justify-center h-full min-h-[200px] text-muted-foreground text-sm">
@@ -2582,19 +2690,28 @@ export function SlashEditor({
       </div>
 
       {/* Status bar */}
-      <div className="flex items-center justify-between px-2 text-[11px] text-muted-foreground/60">
-        <div className="flex items-center gap-3">
+      {isFocusMode ? (
+        <div className="flex items-center justify-center px-2 text-[11px] text-muted-foreground/40">
           <span>{wordCount} Wörter</span>
-          <span>{charCount} Zeichen</span>
-          <span>{lineCount} Zeilen</span>
+          <span className="mx-2">·</span>
+          <span>Esc = Beenden</span>
         </div>
-        <div className="flex items-center gap-3">
-          <span>/ = Blöcke</span>
-          <span>⌘D = Duplizieren</span>
-          <span>⌘⇧↑↓ = Block verschieben</span>
-          {isFullscreen && <span>Esc = Vollbild beenden</span>}
+      ) : (
+        <div className="flex items-center justify-between px-2 text-[11px] text-muted-foreground/60">
+          <div className="flex items-center gap-3">
+            <span>{wordCount} Wörter</span>
+            <span>{charCount} Zeichen</span>
+            <span>{lineCount} Zeilen</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <span>/ = Blöcke</span>
+            <span>⌘B ⌘I ⌘K = Format</span>
+            <span>⌘D = Duplizieren</span>
+            <span>⌘⇧↑↓ = Verschieben</span>
+            {isFullscreen && <span>Esc = Vollbild beenden</span>}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Modals */}
       {modal === "table" && (
@@ -2634,16 +2751,22 @@ function ToolbarButton({
   icon: Icon,
   label,
   onClick,
+  active,
 }: {
   icon: LucideIcon;
   label: string;
   onClick: () => void;
+  active?: boolean;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs transition-colors ${
+        active
+          ? "text-primary bg-primary/10"
+          : "text-muted-foreground hover:text-foreground hover:bg-accent"
+      }`}
       title={label}
     >
       <Icon className="w-4 h-4" />
