@@ -1811,7 +1811,6 @@ export function SlashEditor({
   const [isFocusMode, setIsFocusMode] = useState(false);
   // "edit" = nur Editor, "split" = Editor + Vorschau, "preview" = nur Vorschau
   const [viewMode, setViewMode] = useState<"edit" | "split" | "preview">("edit");
-  const gutterRef = useRef<HTMLDivElement>(null);
   const previewRef = useRef<HTMLDivElement>(null);
   const [debouncedContent, setDebouncedContent] = useState(value);
   const scrollSyncSource = useRef<"editor" | "preview" | null>(null);
@@ -2314,11 +2313,6 @@ export function SlashEditor({
       ta.style.height = "";
     }
 
-    // Re-sync gutter + highlight after height change
-    const scrollY = ta.scrollTop;
-    if (gutterRef.current) {
-      gutterRef.current.style.transform = `translateY(-${scrollY}px)`;
-    }
   }, [value, viewMode, isFullscreen]);
 
   // Escape exits focus mode / fullscreen
@@ -2341,11 +2335,6 @@ export function SlashEditor({
   function syncEditorScroll() {
     const ta = textareaRef.current;
     if (!ta) return;
-    // Sync gutter + highlight
-    const scrollY = ta.scrollTop;
-    if (gutterRef.current) {
-      gutterRef.current.style.transform = `translateY(-${scrollY}px)`;
-    }
     // Sync preview (proportional scroll)
     if (scrollSyncSource.current === "preview") return;
     scrollSyncSource.current = "editor";
@@ -2365,10 +2354,6 @@ export function SlashEditor({
     if (preview && ta && viewMode === "split") {
       const previewRatio = preview.scrollTop / (preview.scrollHeight - preview.clientHeight || 1);
       ta.scrollTop = previewRatio * (ta.scrollHeight - ta.clientHeight);
-      const scrollY = ta.scrollTop;
-      if (gutterRef.current) {
-        gutterRef.current.style.transform = `translateY(-${scrollY}px)`;
-      }
     }
     requestAnimationFrame(() => { scrollSyncSource.current = null; });
   }
@@ -2551,21 +2536,6 @@ export function SlashEditor({
             )}
 
             <div className={`relative ${isFullscreen ? "flex-1 min-h-0" : ""}`}>
-              {/* Line numbers gutter */}
-              <div className="absolute left-0 top-0 bottom-0 w-10 overflow-hidden select-none pointer-events-none border-r border-border/20 bg-muted/20 rounded-l-lg z-10">
-                <div ref={gutterRef} className="pt-3">
-                  {value.split("\n").map((_, i) => (
-                    <div
-                      key={i}
-                      className="text-right pr-2 text-[11px] font-mono text-muted-foreground/40"
-                      style={{ lineHeight: "22px" }}
-                    >
-                      {i + 1}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
               <textarea
                 ref={textareaRef}
                 value={value}
@@ -2574,10 +2544,10 @@ export function SlashEditor({
                 onPaste={handlePaste}
                 onScroll={syncEditorScroll}
                 placeholder={"Schreibe deinen Inhalt...\nTippe / für Blöcke · Bilder per Drag & Drop oder Strg+V einfügen"}
-                className={`w-full rounded-lg border border-input bg-background pl-12 pr-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
+                className={`w-full rounded-lg border border-input bg-background px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
                   isFullscreen ? "h-full resize-none" : viewMode === "split" ? "min-h-[500px] max-h-[700px] resize-none" : "min-h-[300px] resize-none"
                 }`}
-                style={{ lineHeight: "22px", whiteSpace: "pre", overflowX: "auto" }}
+                style={{ lineHeight: "22px" }}
               />
             </div>
 
