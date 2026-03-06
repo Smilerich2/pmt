@@ -259,51 +259,50 @@ function preprocessGlossar(text: string, glossary: GlossaryEntry[]): string {
   });
 }
 
+function renderBlocks(blocks: Block[], glossary: GlossaryEntry[] = []) {
+  return blocks.map((block, i) => {
+    switch (block.type) {
+      case "callout":
+        return (
+          <Callout
+            key={i}
+            type={block.variant as "merke" | "tipp" | "warnung" | "info"}
+          >
+            {renderBlocks(parseContent(block.content), glossary)}
+          </Callout>
+        );
+      case "accordion":
+        return (
+          <Accordion key={i} title={block.title}>
+            {renderBlocks(parseContent(block.content), glossary)}
+          </Accordion>
+        );
+      case "quiz":
+        return (
+          <Quiz
+            key={i}
+            question={block.question}
+            options={block.options}
+            explanation={block.explanation}
+          />
+        );
+      case "bild":
+        return <BildBlock key={i} config={block.config} />;
+      case "demo":
+        return <DemoBlock key={i} name={block.name} height={block.height} title={block.title} />;
+      case "htmldemo":
+        return <HtmlDemoBlock key={i} html={block.html} css={block.css} js={block.js} height={block.height} title={block.title} />;
+      case "spalten":
+        return <SpaltenBlock key={i} columns={block.columns} renderColumn={(col) => <>{renderBlocks(parseContent(col), glossary)}</>} />;
+      case "markdown":
+        return <MarkdownBlock key={i} content={block.content} glossary={glossary} />;
+    }
+  });
+}
+
 export function MarkdownRenderer({ content, glossary = [] }: { content: string; glossary?: GlossaryEntry[] }) {
   const blocks = parseContent(content);
-
-  return (
-    <div>
-      {blocks.map((block, i) => {
-        switch (block.type) {
-          case "callout":
-            return (
-              <Callout
-                key={i}
-                type={block.variant as "merke" | "tipp" | "warnung" | "info"}
-              >
-                {block.content}
-              </Callout>
-            );
-          case "accordion":
-            return (
-              <Accordion key={i} title={block.title}>
-                {block.content}
-              </Accordion>
-            );
-          case "quiz":
-            return (
-              <Quiz
-                key={i}
-                question={block.question}
-                options={block.options}
-                explanation={block.explanation}
-              />
-            );
-          case "bild":
-            return <BildBlock key={i} config={block.config} />;
-          case "demo":
-            return <DemoBlock key={i} name={block.name} height={block.height} title={block.title} />;
-          case "htmldemo":
-            return <HtmlDemoBlock key={i} html={block.html} css={block.css} js={block.js} height={block.height} title={block.title} />;
-          case "spalten":
-            return <SpaltenBlock key={i} columns={block.columns} />;
-          case "markdown":
-            return <MarkdownBlock key={i} content={block.content} glossary={glossary} />;
-        }
-      })}
-    </div>
-  );
+  return <div>{renderBlocks(blocks, glossary)}</div>;
 }
 
 function MarkdownBlock({ content, glossary = [] }: { content: string; glossary?: GlossaryEntry[] }) {

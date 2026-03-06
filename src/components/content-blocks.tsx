@@ -124,7 +124,7 @@ export function Callout({
   children,
 }: {
   type: keyof typeof calloutConfig;
-  children: string;
+  children: React.ReactNode;
 }) {
   const config = calloutConfig[type] || calloutConfig.info;
   const Icon = config.icon;
@@ -138,7 +138,7 @@ export function Callout({
         {config.label}
       </div>
       <div className="text-sm leading-relaxed">
-        <BlockContent text={children} />
+        {children}
       </div>
     </div>
   );
@@ -151,7 +151,7 @@ export function Accordion({
   children,
 }: {
   title: string;
-  children: string;
+  children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -174,7 +174,7 @@ export function Accordion({
         }`}
       >
         <div className="px-4 pb-4 text-sm text-foreground/85 leading-relaxed border-t border-border/40 pt-3">
-          <BlockContent text={children} />
+          {children}
         </div>
       </div>
     </div>
@@ -445,7 +445,7 @@ export function Quiz({
 
 // ─── Spalten (Columns) ───
 
-export function SpaltenBlock({ columns }: { columns: string[] }) {
+export function SpaltenBlock({ columns, renderColumn }: { columns: string[]; renderColumn?: (content: string) => React.ReactNode }) {
   const gridClass =
     columns.length === 3
       ? "grid grid-cols-1 md:grid-cols-3 gap-6 my-6"
@@ -455,7 +455,7 @@ export function SpaltenBlock({ columns }: { columns: string[] }) {
     <div className={gridClass}>
       {columns.map((col, i) => (
         <div key={i} className="min-w-0">
-          <BlockContent text={col} />
+          {renderColumn ? renderColumn(col) : <BlockContent text={col} />}
         </div>
       ))}
     </div>
