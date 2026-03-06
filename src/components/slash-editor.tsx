@@ -2313,22 +2313,28 @@ export function SlashEditor({
     }
   }, [value, onChange, getBlockAtCursor]);
 
-  // Auto-resize textarea (only in edit-only mode, not split/fullscreen)
-  useEffect(() => {
-    const ta = textareaRef.current;
-    if (!ta || viewMode !== "edit" || isFullscreen) return;
-    ta.style.height = "auto";
-    ta.style.height = ta.scrollHeight + "px";
-  }, [value, viewMode, isFullscreen]);
-
-  // Fullscreen: fill available space
+  // Manage textarea height across all mode combinations
   useEffect(() => {
     const ta = textareaRef.current;
     if (!ta) return;
+
     if (isFullscreen) {
+      // Fullscreen: fill available space
       ta.style.height = "100%";
+    } else if (viewMode === "edit") {
+      // Edit-only (no fullscreen): auto-resize to fit content
+      ta.style.height = "auto";
+      ta.style.height = ta.scrollHeight + "px";
+    } else {
+      // Split mode (no fullscreen): clear inline height, let CSS handle it
+      ta.style.height = "";
     }
-  }, [isFullscreen]);
+
+    // Re-sync gutter after height change
+    if (gutterRef.current) {
+      gutterRef.current.style.transform = `translateY(-${ta.scrollTop}px)`;
+    }
+  }, [value, viewMode, isFullscreen]);
 
   // Escape exits focus mode / fullscreen
   useEffect(() => {
