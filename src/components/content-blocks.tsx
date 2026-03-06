@@ -158,6 +158,7 @@ export function Accordion({
   return (
     <div className="my-3 rounded-xl border border-border/60 bg-card overflow-hidden">
       <button
+        type="button"
         onClick={() => setOpen(!open)}
         className="w-full flex items-center justify-between px-4 py-3 text-left font-medium text-foreground hover:bg-accent/50 transition-colors"
       >
@@ -395,6 +396,7 @@ export function Quiz({
 
           return (
             <button
+              type="button"
               key={i}
               onClick={() => handleSelect(i)}
               className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm text-left transition-all ${style} ${
@@ -418,6 +420,7 @@ export function Quiz({
 
       {!revealed ? (
         <button
+          type="button"
           onClick={handleCheck}
           disabled={selected === null}
           className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium disabled:opacity-40 hover:bg-primary/90 transition-colors"
@@ -432,6 +435,7 @@ export function Quiz({
             </div>
           )}
           <button
+            type="button"
             onClick={handleReset}
             className="mt-3 px-4 py-2 rounded-lg bg-accent text-foreground text-sm font-medium hover:bg-accent/80 transition-colors"
           >
