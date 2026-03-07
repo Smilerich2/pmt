@@ -50,6 +50,8 @@ import {
   PanelTop,
   Smile,
   Trash2,
+  FileText,
+  Boxes,
   type LucideIcon,
 } from "lucide-react";
 
@@ -314,6 +316,15 @@ const slashCommands: SlashCommand[] = [
     category: "Medien",
     action: "modal",
     modalType: "icon",
+  },
+  {
+    id: "vorlage",
+    label: "Vorlagen",
+    description: "Fertige Module und Layouts einfuegen",
+    icon: Boxes,
+    category: "Vorlagen",
+    action: "modal",
+    modalType: "vorlage",
   },
 ];
 
@@ -1322,6 +1333,119 @@ function DemoModal({
         />
       </div>
     </ModalShell>
+  );
+}
+
+// ─── Spalten Modal ───
+
+// ─── Vorlage (Template) Modal ───
+
+function VorlageModal({
+  onInsert,
+  onClose,
+}: {
+  onInsert: (md: string) => void;
+  onClose: () => void;
+}) {
+  const [search, setSearch] = useState("");
+  const [preview, setPreview] = useState<number | null>(null);
+
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase();
+    if (!q) return moduleTemplates;
+    return moduleTemplates.filter(
+      (t) => t.name.toLowerCase().includes(q) || t.description.toLowerCase().includes(q) || t.category.toLowerCase().includes(q)
+    );
+  }, [search]);
+
+  const grouped = useMemo(() => {
+    const g: Record<string, typeof filtered> = {};
+    for (const t of filtered) {
+      if (!g[t.category]) g[t.category] = [];
+      g[t.category].push(t);
+    }
+    return g;
+  }, [filtered]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
+      <div
+        className="bg-card border border-border/60 rounded-xl shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between p-4 border-b border-border/40">
+          <div>
+            <h3 className="font-semibold text-foreground">Vorlage einfuegen</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">{moduleTemplates.length} fertige Module</p>
+          </div>
+          <button type="button" onClick={onClose} className="text-muted-foreground hover:text-foreground">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <div className="px-4 pt-3">
+          <input
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setPreview(null); }}
+            placeholder="Vorlage suchen... (z.B. Karten, Tabs, Quiz)"
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            autoFocus
+          />
+        </div>
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {Object.entries(grouped).map(([category, templates]) => (
+            <div key={category}>
+              <p className="text-[10px] font-semibold text-muted-foreground/70 uppercase tracking-wider mb-2">{category}</p>
+              <div className="grid grid-cols-2 gap-2">
+                {templates.map((tmpl) => {
+                  const globalIdx = moduleTemplates.indexOf(tmpl);
+                  const Icon = tmpl.icon;
+                  const isOpen = preview === globalIdx;
+                  return (
+                    <div key={tmpl.name} className="rounded-lg border border-border/40 overflow-hidden">
+                      <div className="flex items-center gap-2.5 p-2.5">
+                        <div className="w-8 h-8 rounded-md bg-accent/70 flex items-center justify-center shrink-0">
+                          <Icon className="w-4 h-4 text-primary" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-foreground truncate">{tmpl.name}</p>
+                          <p className="text-[11px] text-muted-foreground truncate">{tmpl.description}</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-1 px-2.5 pb-2.5">
+                        <button
+                          type="button"
+                          onClick={() => setPreview(isOpen ? null : globalIdx)}
+                          className={`flex-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
+                            isOpen ? "bg-primary/10 text-primary" : "bg-accent/50 text-muted-foreground hover:text-foreground"
+                          }`}
+                        >
+                          {isOpen ? "Ausblenden" : "Vorschau"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { onInsert(tmpl.content + "\n"); onClose(); }}
+                          className="flex-1 px-2 py-1 rounded text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                        >
+                          Einfuegen
+                        </button>
+                      </div>
+                      {isOpen && (
+                        <div className="border-t border-border/40 p-2.5 max-h-48 overflow-y-auto">
+                          <pre className="text-[11px] font-mono text-foreground/60 whitespace-pre-wrap">{tmpl.content}</pre>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+          {filtered.length === 0 && (
+            <p className="text-sm text-muted-foreground text-center py-8">Keine Vorlage gefunden</p>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -2425,6 +2549,300 @@ Die drei wichtigsten Regeln:
 1. **Vorbereitung** — Alle Materialien bereithalten
 2. **Sorgfalt** — Jeden Schritt genau ausfuehren
 3. **Kontrolle** — Ergebnis systematisch pruefen
+:::`,
+  },
+];
+
+// ─── Module Templates (quick-insert building blocks) ───
+
+type ModuleTemplate = {
+  name: string;
+  description: string;
+  icon: LucideIcon;
+  category: string;
+  content: string;
+};
+
+const moduleTemplates: ModuleTemplate[] = [
+  // ─── Karten ───
+  {
+    name: "2 Karten",
+    description: "Zwei Karten nebeneinander",
+    icon: LayoutGrid,
+    category: "Karten",
+    content: `:::karten
+---Karte 1
+Inhalt der ersten Karte.
+---Karte 2
+Inhalt der zweiten Karte.
+:::`,
+  },
+  {
+    name: "3 Karten mit Badges",
+    description: "Drei Karten mit farbigen Badges",
+    icon: LayoutGrid,
+    category: "Karten",
+    content: `:::karten|3
+---Basis|Standard|gray
+- Eigenschaft 1
+- Eigenschaft 2
+- Eigenschaft 3
+---Erweitert|Beliebt|blue
+- Alles aus Basis
+- Eigenschaft 4
+- Eigenschaft 5
+---Premium|Empfohlen|orange
+- Alles aus Erweitert
+- Eigenschaft 6
+- Eigenschaft 7
+:::`,
+  },
+  {
+    name: "4 Karten Icon-Grid",
+    description: "Vier Karten mit Icons als Feature-Grid",
+    icon: LayoutGrid,
+    category: "Karten",
+    content: `:::karten
+---:icon[book-open] Lernen
+Grundlagen verstehen und Wissen aufbauen.
+---:icon[target] Ueben
+Durch Wiederholung das Gelernte festigen.
+---:icon[check] Pruefen
+Mit Quizfragen den Wissensstand testen.
+---:icon[star] Meistern
+Expertenwissen fuer die Praxis erlangen.
+:::`,
+  },
+  // ─── Tabs ───
+  {
+    name: "2 Tabs",
+    description: "Zwei einfache Tabs",
+    icon: PanelTop,
+    category: "Tabs",
+    content: `:::tabs
+---Theorie|book-open
+Hier steht die theoretische Erklaerung.
+---Praxis|wrench
+Hier steht die praktische Anwendung.
+:::`,
+  },
+  {
+    name: "3 Tabs mit Inhalt",
+    description: "Drei Tabs: Uebersicht, Details, Quiz",
+    icon: PanelTop,
+    category: "Tabs",
+    content: `:::tabs
+---Uebersicht|book-open
+Kurze Zusammenfassung des Themas.
+
+:::merke
+Die wichtigste Erkenntnis hier zusammenfassen.
+:::
+
+---Details|layers
+### Vertiefung
+
+Ausfuehrliche Erklaerung mit allen Details.
+
+| Aspekt | Beschreibung |
+| --- | --- |
+| Punkt 1 | Erklaerung |
+| Punkt 2 | Erklaerung |
+
+---Quiz|help-circle
+Teste dein Wissen:
+
+???Hier steht die Frage?
+[ ] Falsche Antwort
+[x] Richtige Antwort
+[ ] Falsche Antwort
+>>>Erklaerung der richtigen Antwort.
+???
+:::`,
+  },
+  // ─── Spalten ───
+  {
+    name: "2 Spalten",
+    description: "Zwei Spalten nebeneinander",
+    icon: Columns2,
+    category: "Layouts",
+    content: `:::spalten
+---links
+### Linke Spalte
+Inhalt der linken Spalte.
+---rechts
+### Rechte Spalte
+Inhalt der rechten Spalte.
+:::`,
+  },
+  {
+    name: "Vorteile / Nachteile",
+    description: "Pro-Contra Vergleich in zwei Spalten",
+    icon: Columns2,
+    category: "Layouts",
+    content: `:::spalten
+---links
+### :icon[check] Vorteile
+
+- Vorteil 1
+- Vorteil 2
+- Vorteil 3
+
+---rechts
+### :icon[circle-x] Nachteile
+
+- Nachteil 1
+- Nachteil 2
+- Nachteil 3
+:::`,
+  },
+  {
+    name: "Bild + Text",
+    description: "Bild links, Text rechts",
+    icon: Columns2,
+    category: "Layouts",
+    content: `:::spalten
+---links
+:::bild[/uploads/beispiel.jpg]
+size: full
+rounded: true
+:::
+---rechts
+### Titel
+
+Beschreibender Text neben dem Bild. Ideal fuer Erklaerungen mit visueller Unterstuetzung.
+:::`,
+  },
+  // ─── Bloecke ───
+  {
+    name: "Callout-Set",
+    description: "Alle vier Callout-Varianten",
+    icon: BookOpen,
+    category: "Bloecke",
+    content: `:::merke
+**Merke:** Wichtige Fakten und Definitionen hier.
+:::
+
+:::tipp
+**Tipp:** Hilfreiche Hinweise und Eselsbruecken hier.
+:::
+
+:::warnung
+**Achtung:** Warnungen und haeufige Fehler hier.
+:::
+
+:::info
+**Info:** Zusaetzliche Hintergrundinformationen hier.
+:::`,
+  },
+  {
+    name: "FAQ Accordion",
+    description: "Drei aufklappbare Fragen",
+    icon: ChevronDown,
+    category: "Bloecke",
+    content: `+++Frage 1: Was ist ...?
+Antwort auf die erste Frage. Kann auch **formatierten Text** enthalten.
++++
+
++++Frage 2: Wie funktioniert ...?
+Ausfuehrliche Erklaerung zur zweiten Frage.
++++
+
++++Frage 3: Warum ist ... wichtig?
+Begruendung und Zusammenhang erklaeren.
++++`,
+  },
+  {
+    name: "Quiz-Block (3 Fragen)",
+    description: "Drei Multiple-Choice Fragen",
+    icon: HelpCircle,
+    category: "Bloecke",
+    content: `???Frage 1: Hier steht die erste Frage?
+[ ] Antwort A
+[x] Antwort B (richtig)
+[ ] Antwort C
+>>>Erklaerung: Antwort B ist richtig, weil...
+???
+
+???Frage 2: Hier steht die zweite Frage?
+[x] Antwort A (richtig)
+[ ] Antwort B
+[ ] Antwort C
+>>>Erklaerung: Antwort A ist richtig, weil...
+???
+
+???Frage 3: Hier steht die dritte Frage?
+[ ] Antwort A
+[ ] Antwort B
+[x] Antwort C (richtig)
+>>>Erklaerung: Antwort C ist richtig, weil...
+???`,
+  },
+  {
+    name: "Vergleichstabelle",
+    description: "Tabelle mit Vergleich und Emojis",
+    icon: Table,
+    category: "Bloecke",
+    content: `| Eigenschaft | Variante A | Variante B | Variante C |
+| --- | --- | --- | --- |
+| Gewicht | Leicht | Mittel | Schwer |
+| Kosten | Guenstig | Mittel | Teuer |
+| Stabilitaet | Niedrig | Mittel | Hoch |
+| Empfehlung | Einfache Produkte | Allround | Schwere Gueter |`,
+  },
+  // ─── Kombinationen ───
+  {
+    name: "Lernabschnitt komplett",
+    description: "Erklaerung + Merke + Quiz in einem",
+    icon: FileText,
+    category: "Kombinationen",
+    content: `### Abschnittstitel
+
+Hier steht die Erklaerung des Themas. Nutze **fetten Text** fuer wichtige Begriffe und beschreibe das Thema verstaendlich.
+
+:::merke
+Die zentrale Erkenntnis dieses Abschnitts in einem Satz zusammengefasst.
+:::
+
+:::tipp
+Ein praktischer Tipp, der beim Lernen oder in der Praxis hilft.
+:::
+
+???Verstaendnisfrage zu diesem Abschnitt?
+[ ] Falsche Antwort A
+[x] Richtige Antwort B
+[ ] Falsche Antwort C
+>>>Erklaerung, warum B richtig ist.
+???`,
+  },
+  {
+    name: "Feature-Showcase",
+    description: "Tabs mit Karten und Icons fuer Produktvorstellung",
+    icon: Boxes,
+    category: "Kombinationen",
+    content: `:::tabs
+---Uebersicht|layers
+:::karten|3
+---:icon[zap] Schnell
+Blitzschnelle Verarbeitung in kuerzester Zeit.
+---:icon[shield] Sicher
+Hoechste Qualitaets- und Sicherheitsstandards.
+---:icon[recycle] Nachhaltig
+Umweltfreundliche Materialien und Prozesse.
+:::
+
+---Vergleich|arrow-right
+
+| Merkmal | Standard | Premium |
+| --- | --- | --- |
+| Geschwindigkeit | Normal | 2x schneller |
+| Material | Basis | Hochwertig |
+| Garantie | 1 Jahr | 3 Jahre |
+
+---Tipp|lightbulb
+:::tipp
+Fuer die meisten Anwendungen reicht die Standard-Variante. Premium lohnt sich bei hohen Stueckzahlen und besonderen Anforderungen.
+:::
 :::`,
   },
 ];
@@ -4086,6 +4504,9 @@ export function SlashEditor({
       )}
       {modal === "icon" && (
         <IconModal onInsert={handleModalInsert} onClose={() => setModal(null)} />
+      )}
+      {modal === "vorlage" && (
+        <VorlageModal onInsert={handleModalInsert} onClose={() => setModal(null)} />
       )}
       {showHelp && (
         <BlockHelpOverlay onClose={() => setShowHelp(false)} onInsertTemplate={(content) => { insertText(content); }} />

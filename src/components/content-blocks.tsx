@@ -492,7 +492,7 @@ export function TabsBlock({
   return (
     <div className="my-6">
       {/* Tab bar */}
-      <div className="flex items-center gap-1 border-b-2 border-border/60 overflow-x-auto">
+      <div className="flex items-center gap-1 border-b-2 border-border/60 overflow-x-auto overflow-y-hidden">
         {tabs.map((tab, i) => (
           <button
             key={i}
