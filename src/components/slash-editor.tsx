@@ -1996,15 +1996,95 @@ Wird als gepunktete Unterstreichung angezeigt. Beim Hover/Tap erscheint die Defi
     icon: BookA,
   },
   {
+    name: "Spalten-Layout",
+    description: "Inhalte nebeneinander in 2 oder 3 Spalten anordnen. Trennzeichen: ---links, ---mitte, ---rechts.",
+    syntax: `:::spalten
+---links
+Linke Spalte mit **beliebigem** Inhalt.
+---rechts
+Rechte Spalte.
+:::`,
+    icon: Columns2,
+  },
+  {
+    name: "Tabs",
+    description: "Tab-Navigation mit umschaltbaren Inhalten. Optional mit Icon (Lucide-Name nach |). Verschachtelung moeglich.",
+    syntax: `:::tabs
+---Uebersicht|book-open
+Inhalt des ersten Tabs.
+---Details|settings
+Inhalt des zweiten Tabs.
+
+:::merke
+Verschachtelte Bloecke funktionieren!
+:::
+:::`,
+    icon: PanelTop,
+  },
+  {
+    name: "Karten",
+    description: "Responsive Karten-Grid. Spaltenanzahl nach |, Badges pro Karte mit Titel|Badge|Farbe. Verschachtelung moeglich.",
+    syntax: `:::karten|3
+---Karte 1|Basis|orange
+Inhalt der ersten Karte.
+---Karte 2|Premium|blue
+Inhalt der zweiten Karte.
+---Karte 3
+Karte ohne Badge.
+:::`,
+    icon: LayoutGrid,
+    properties: [
+      { key: "Spalten", desc: ":::karten|2 oder :::karten|3 (Standard: 2)" },
+      { key: "Badge-Farben", desc: "orange | gray | blue | green | red | purple | beige" },
+    ],
+  },
+  {
+    name: "Icons (inline)",
+    description: "Lucide-Icons inline im Text einfuegen. Ueber 1600 Icons verfuegbar.",
+    syntax: `:icon[heart] :icon[star] :icon[arrow-right] :icon[check]
+
+Im Fliesstext: Das Paket :icon[package] wird versendet :icon[truck].`,
+    icon: Smile,
+  },
+  {
+    name: "HTML/CSS/JS Demo",
+    description: "Interaktives Code-Beispiel mit HTML, CSS und JavaScript in einem Sandbox-iFrame.",
+    syntax: `:::htmldemo
+title: Farbmischer
+height: 200
+---html
+<button onclick="change()">Klick mich</button>
+<div id="box" style="width:100px;height:100px;background:red"></div>
+---css
+button { padding: 8px 16px; cursor: pointer; }
+---js
+function change() {
+  const c = '#'+Math.floor(Math.random()*16777215).toString(16);
+  document.getElementById('box').style.background = c;
+}
+:::`,
+    icon: Globe,
+  },
+  {
+    name: "Textformatierung (inline)",
+    description: "Ueber den Format-Popover (Text markieren) oder direkt als HTML im Markdown.",
+    syntax: `<span style="color: #ef4444">Roter Text</span>
+<span style="font-size: 1.25rem">Grosser Text</span>
+<span style="background: #fef08a; padding: 0 4px; border-radius: 4px">Highlight</span>
+<span style="text-align: center; display: block">Zentriert</span>
+<span style="background: #f97316; color: white; padding: 2px 10px; border-radius: 9999px; font-size: 0.8rem">Chip/Badge</span>`,
+    icon: Bold,
+  },
+  {
     name: "Standard Markdown",
-    description: "Alle üblichen Markdown-Elemente werden unterstützt.",
-    syntax: `# Überschrift 1
-## Überschrift 2
-### Überschrift 3
+    description: "Alle ueblichen Markdown-Elemente werden unterstuetzt.",
+    syntax: `# Ueberschrift 1
+## Ueberschrift 2
+### Ueberschrift 3
 
 **Fett**, *Kursiv*, ~~Durchgestrichen~~
 
-- Aufzählung
+- Aufzaehlung
 - Weiterer Punkt
 
 1. Nummerierte Liste
@@ -2012,7 +2092,7 @@ Wird als gepunktete Unterstreichung angezeigt. Beim Hover/Tap erscheint die Defi
 
 > Zitat / Blockquote
 
-\`Inline-Code\` und Code-Blöcke:
+\`Inline-Code\` und Code-Bloecke:
 \`\`\`
 Code hier
 \`\`\`
@@ -2109,6 +2189,45 @@ Der Begriff wird mit gepunkteter Unterstreichung angezeigt und zeigt beim Hover 
 | Gewicht | Leicht | Schwer |
 | Polsterung | Ja | Nein |
 
+## 8. Spalten-Layout
+
+:::spalten
+---links
+Linke Spalte
+---rechts
+Rechte Spalte
+:::
+
+Trennzeichen: ---links, ---mitte, ---rechts (2 oder 3 Spalten).
+
+## 9. Tabs
+
+:::tabs
+---Tab 1|book-open
+Inhalt des ersten Tabs.
+---Tab 2|settings
+Inhalt des zweiten Tabs.
+:::
+
+Format: ---Titel|icon-name (Icon optional, Lucide-Iconname). Verschachtelung mit anderen Bloecken moeglich.
+
+## 10. Karten-Grid
+
+:::karten|3
+---Titel|Badge|orange
+Inhalt der Karte.
+---Titel 2
+Karte ohne Badge.
+:::
+
+Format: :::karten|Spaltenanzahl, ---Titel|Badge-Text|Badge-Farbe. Farben: orange, gray, blue, green, red, purple, beige.
+
+## 11. Inline-Icons
+
+:icon[heart] :icon[star] :icon[package] :icon[truck]
+
+Ueber 1600 Lucide-Icons verfuegbar. Werden inline im Text gerendert.
+
 # STRUKTUR-VORGABEN
 
 - Beginne JEDEN Beitrag mit einer kurzen Einleitung (2-3 Sätze), die das Thema vorstellt.
@@ -2134,9 +2253,223 @@ Der Begriff wird mit gepunkteter Unterstreichung angezeigt und zeigt beim Hover 
 Wenn ich z.B. sage "Schreibe einen Beitrag über Wellpappenarten", dann erstellst du einen vollständigen, gut strukturierten Lernbeitrag mit Einleitung, mehreren Abschnitten, Callout-Boxen, Quiz-Fragen, einer Tabelle und einer Zusammenfassung — alles im oben beschriebenen Markdown-Format.`;
 }
 
-function BlockHelpOverlay({ onClose }: { onClose: () => void }) {
+// ─── Example Templates ───
+
+const exampleTemplates = [
+  {
+    name: "Lernbeitrag mit Struktur",
+    description: "Typischer Lernbeitrag mit Callouts, Quiz, Accordion und Tabelle",
+    content: `## Einfuehrung
+
+Hier beginnt der Lernbeitrag mit einer kurzen Einleitung, die das Thema vorstellt und erklaert, warum es wichtig ist.
+
+:::merke
+Die wichtigste Definition oder Kernaussage steht in einer Merke-Box, damit sie sofort ins Auge faellt.
+:::
+
+## Grundlagen
+
+Erklaere hier die Grundlagen des Themas. Nutze **fetten Text** fuer Fachbegriffe und *kursiven Text* fuer Betonungen.
+
+### Vergleichstabelle
+
+| Eigenschaft | Variante A | Variante B | Variante C |
+| --- | --- | --- | --- |
+| Gewicht | Leicht | Mittel | Schwer |
+| Kosten | Guenstig | Mittel | Teuer |
+| Stabilitaet | Niedrig | Mittel | Hoch |
+
+:::tipp
+Praxistipp: So merkst du dir den Unterschied am besten...
+:::
+
+???Welche Variante eignet sich am besten fuer schwere Gueter?
+[ ] Variante A
+[ ] Variante B
+[x] Variante C
+>>>Variante C hat die hoechste Stabilitaet und ist daher fuer schwere Gueter am besten geeignet.
+???
+
+## Vertiefung
+
++++Exkurs: Historischer Hintergrund
+Hier stehen optionale Zusatzinfos, die nicht pruefungsrelevant sind, aber das Verstaendnis vertiefen.
++++
+
+:::warnung
+Achtung: Dieser haeufige Fehler fuehrt in der Praxis oft zu Problemen!
+:::
+
+## Zusammenfassung
+
+:::merke
+Die drei wichtigsten Punkte:
+1. Erster Kernpunkt
+2. Zweiter Kernpunkt
+3. Dritter Kernpunkt
+:::`,
+  },
+  {
+    name: "Interaktiver Vergleich",
+    description: "Tabs und Karten fuer uebersichtliche Vergleiche",
+    content: `## :icon[layers] Materialien im Vergleich
+
+Verschiedene Materialien haben unterschiedliche Eigenschaften. Nutze die Tabs um zwischen den Kategorien zu wechseln.
+
+:::tabs
+---Uebersicht|book-open
+Hier siehst du alle Materialien auf einen Blick:
+
+:::karten|3
+---Material A|Leicht|green
+- Gewicht: 100g/m²
+- Kosten: Guenstig
+- Einsatz: Leichte Produkte
+
+:icon[check] Recycelbar
+---Material B|Standard|blue
+- Gewicht: 250g/m²
+- Kosten: Mittel
+- Einsatz: Allround
+
+:icon[check] Recycelbar
+---Material C|Premium|orange
+- Gewicht: 400g/m²
+- Kosten: Hoch
+- Einsatz: Schwere Gueter
+
+:icon[check] Recycelbar
+:::
+
+---Vorteile & Nachteile|arrow-right
+
+:::spalten
+---links
+### :icon[check] Vorteile
+
+- Hohe Stabilitaet
+- Guter Produktschutz
+- Vielseitig einsetzbar
+
+---rechts
+### :icon[circle-x] Nachteile
+
+- Hoehere Kosten
+- Mehr Materialeinsatz
+- Schwerer zu transportieren
+:::
+
+---Quiz|help-circle
+Teste dein Wissen zu den Materialien:
+
+???Welches Material hat das beste Verhaeltnis von Gewicht zu Stabilitaet?
+[ ] Material A
+[x] Material B
+[ ] Material C
+>>>Material B bietet als Allround-Loesung das beste Verhaeltnis aus Gewicht und Stabilitaet.
+???
+:::`,
+  },
+  {
+    name: "Schritt-fuer-Schritt Anleitung",
+    description: "Nummerierte Anleitung mit Bildern, Tipps und Warnungen",
+    content: `## :icon[book-open] Anleitung: Prozess Schritt fuer Schritt
+
+Diese Anleitung fuehrt dich durch den gesamten Prozess. Folge den Schritten der Reihe nach.
+
+:::info
+**Benoetigte Materialien:** Liste hier alle Materialien und Werkzeuge auf, die benoetigt werden.
+:::
+
+### Schritt 1: Vorbereitung
+
+Beschreibe den ersten Schritt ausfuehrlich. Erklaere, worauf man achten muss.
+
+:::tipp
+Bereite alle Materialien vor, bevor du beginnst. Das spart Zeit und verhindert Fehler.
+:::
+
+### Schritt 2: Durchfuehrung
+
+Beschreibe den Hauptschritt. Nutze eine nummerierte Liste fuer die Reihenfolge:
+
+1. Ersten Arbeitsschritt ausfuehren
+2. Ergebnis kontrollieren
+3. Zweiten Arbeitsschritt ausfuehren
+4. Qualitaetskontrolle durchfuehren
+
+:::warnung
+**Sicherheitshinweis:** Trage immer Schutzhandschuhe bei diesem Arbeitsschritt!
+:::
+
+### Schritt 3: Kontrolle
+
++++Checkliste zur Qualitaetskontrolle
+- [ ] Punkt 1 geprueft?
+- [ ] Punkt 2 geprueft?
+- [ ] Punkt 3 geprueft?
+- [ ] Ergebnis dokumentiert?
++++
+
+???Was ist der wichtigste Schritt bei der Qualitaetskontrolle?
+[ ] Schnell durchfuehren
+[x] Systematisch nach Checkliste pruefen
+[ ] Nur das Endergebnis ansehen
+>>>Eine systematische Kontrolle nach Checkliste stellt sicher, dass kein Pruefpunkt vergessen wird.
+???
+
+### Zusammenfassung
+
+:::merke
+Die drei wichtigsten Regeln:
+1. **Vorbereitung** — Alle Materialien bereithalten
+2. **Sorgfalt** — Jeden Schritt genau ausfuehren
+3. **Kontrolle** — Ergebnis systematisch pruefen
+:::`,
+  },
+];
+
+// ─── Keyboard Shortcuts Reference ───
+
+const keyboardShortcuts = [
+  { category: "Formatierung", shortcuts: [
+    { keys: `${modLabel}B`, desc: "Fett" },
+    { keys: `${modLabel}I`, desc: "Kursiv" },
+    { keys: `${modLabel}K`, desc: "Link einfuegen" },
+    { keys: `${modLabel}E`, desc: "Inline Code" },
+    { keys: `${modLabel}${shiftLabel}E`, desc: "Code-Block" },
+    { keys: `${modLabel}${shiftLabel}X`, desc: "Durchgestrichen" },
+  ]},
+  { category: "Bloecke & Medien", shortcuts: [
+    { keys: `${modLabel}${shiftLabel}H`, desc: "Trennlinie einfuegen" },
+    { keys: `${modLabel}${shiftLabel}P`, desc: "Bild einfuegen (Modal)" },
+    { keys: "/", desc: "Slash-Menu oeffnen" },
+  ]},
+  { category: "Bearbeitung", shortcuts: [
+    { keys: `${modLabel}Z`, desc: "Rueckgaengig (Undo)" },
+    { keys: `${modLabel}${shiftLabel}Z`, desc: "Wiederholen (Redo)" },
+    { keys: `${modLabel}D`, desc: "Zeile/Block duplizieren" },
+    { keys: `${modLabel}${shiftLabel}↑`, desc: "Block nach oben" },
+    { keys: `${modLabel}${shiftLabel}↓`, desc: "Block nach unten" },
+  ]},
+  { category: "Listen & Einrueckung", shortcuts: [
+    { keys: "Enter", desc: "Liste automatisch fortsetzen" },
+    { keys: "Enter (leer)", desc: "Liste beenden" },
+    { keys: "Tab", desc: "Einruecken / Liste verschachteln" },
+    { keys: `${shiftLabel}Tab`, desc: "Ausruecken" },
+  ]},
+  { category: "Auto-Pairing (Text markiert)", shortcuts: [
+    { keys: "* oder _", desc: "Text mit *...* umschliessen" },
+    { keys: "( oder [", desc: "Text mit (...) bzw. [...] umschliessen" },
+    { keys: "` oder \"", desc: "Text mit `...` bzw. \"...\" umschliessen" },
+  ]},
+];
+
+function BlockHelpOverlay({ onClose, onInsertTemplate }: { onClose: () => void; onInsertTemplate?: (content: string) => void }) {
   const [copied, setCopied] = useState(false);
   const [copiedBlock, setCopiedBlock] = useState<string | null>(null);
+  const [tab, setTab] = useState<"blocks" | "shortcuts" | "templates">("blocks");
+  const [previewTemplate, setPreviewTemplate] = useState<number | null>(null);
 
   function copyPrompt() {
     navigator.clipboard.writeText(generateAIPrompt());
@@ -2150,6 +2483,12 @@ function BlockHelpOverlay({ onClose }: { onClose: () => void }) {
     setTimeout(() => setCopiedBlock(null), 2000);
   }
 
+  const tabs = [
+    { id: "blocks" as const, label: "Bloecke", icon: Code2 },
+    { id: "shortcuts" as const, label: "Tastenkuerzel", icon: Minus },
+    { id: "templates" as const, label: "Vorlagen", icon: Copy },
+  ];
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
       <div
@@ -2157,32 +2496,45 @@ function BlockHelpOverlay({ onClose }: { onClose: () => void }) {
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-border/40">
-          <div>
-            <h3 className="font-semibold text-foreground text-lg">Block-Referenz</h3>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              Alle verfügbaren Blöcke und ihre Syntax
-            </p>
+        <div className="flex items-center justify-between p-4 pb-0 border-b border-border/40">
+          <div className="flex items-center gap-4">
+            <h3 className="font-semibold text-foreground text-lg">Hilfe</h3>
+            <div className="flex gap-1">
+              {tabs.map((t) => {
+                const Icon = t.icon;
+                return (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => setTab(t.id)}
+                    className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium border-b-2 -mb-[1px] transition-colors ${
+                      tab === t.id
+                        ? "border-primary text-primary"
+                        : "border-transparent text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    {t.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={copyPrompt}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-accent text-sm font-medium text-foreground hover:bg-accent/80 transition-colors"
-              title="KI-Prompt in die Zwischenablage kopieren"
-            >
-              {copied ? (
-                <>
-                  <CheckCheck className="w-4 h-4 text-emerald-600" />
-                  <span className="text-emerald-600">Kopiert!</span>
-                </>
-              ) : (
-                <>
-                  <Copy className="w-4 h-4" />
-                  KI-Prompt kopieren
-                </>
-              )}
-            </button>
+          <div className="flex items-center gap-2 pb-2">
+            {tab === "blocks" && (
+              <button
+                type="button"
+                onClick={copyPrompt}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-accent text-xs font-medium text-foreground hover:bg-accent/80 transition-colors"
+                title="KI-Prompt in die Zwischenablage kopieren"
+              >
+                {copied ? (
+                  <><CheckCheck className="w-3.5 h-3.5 text-emerald-600" /><span className="text-emerald-600">Kopiert!</span></>
+                ) : (
+                  <><Copy className="w-3.5 h-3.5" />KI-Prompt</>
+                )}
+              </button>
+            )}
             <button type="button" onClick={onClose} className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
               <X className="w-5 h-5" />
             </button>
@@ -2190,91 +2542,141 @@ function BlockHelpOverlay({ onClose }: { onClose: () => void }) {
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-5 space-y-6">
-          {blockDocs.map((block) => {
-            const Icon = block.icon;
-            return (
-              <div key={block.name} className="group">
-                <div className="flex items-start gap-3 mb-2">
-                  <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center shrink-0 mt-0.5">
-                    <Icon className="w-4 h-4 text-primary" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <h4 className="font-semibold text-foreground">{block.name}</h4>
-                      {"variants" in block && block.variants && (
-                        <div className="flex gap-1">
-                          {block.variants.map((v) => (
-                            <span key={v} className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-accent text-muted-foreground">
-                              {v}
-                            </span>
-                          ))}
+        <div className="flex-1 overflow-y-auto p-5">
+          {/* ─── Blocks Tab ─── */}
+          {tab === "blocks" && (
+            <div className="space-y-6">
+              {blockDocs.map((block) => {
+                const Icon = block.icon;
+                return (
+                  <div key={block.name} className="group">
+                    <div className="flex items-start gap-3 mb-2">
+                      <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center shrink-0 mt-0.5">
+                        <Icon className="w-4 h-4 text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-semibold text-foreground">{block.name}</h4>
+                          {"variants" in block && block.variants && (
+                            <div className="flex gap-1">
+                              {block.variants.map((v) => (
+                                <span key={v} className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-accent text-muted-foreground">{v}</span>
+                              ))}
+                            </div>
+                          )}
                         </div>
-                      )}
+                        <p className="text-sm text-muted-foreground mt-0.5">{block.description}</p>
+                      </div>
                     </div>
-                    <p className="text-sm text-muted-foreground mt-0.5">{block.description}</p>
-                  </div>
-                </div>
-
-                {/* Syntax */}
-                <div className="relative ml-11">
-                  <pre className="bg-foreground/[0.03] border border-border/40 rounded-lg p-3 text-xs font-mono text-foreground/80 overflow-x-auto whitespace-pre-wrap">
-                    {block.syntax}
-                  </pre>
-                  <button
-                    type="button"
-                    onClick={() => copyBlockSyntax(block.syntax, block.name)}
-                    className="absolute top-2 right-2 p-1.5 rounded-md bg-card border border-border/40 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity"
-                    title="Syntax kopieren"
-                  >
-                    {copiedBlock === block.name ? (
-                      <CheckCheck className="w-3.5 h-3.5 text-emerald-600" />
-                    ) : (
-                      <Copy className="w-3.5 h-3.5" />
+                    <div className="relative ml-11">
+                      <pre className="bg-foreground/[0.03] border border-border/40 rounded-lg p-3 text-xs font-mono text-foreground/80 overflow-x-auto whitespace-pre-wrap">{block.syntax}</pre>
+                      <button
+                        type="button"
+                        onClick={() => copyBlockSyntax(block.syntax, block.name)}
+                        className="absolute top-2 right-2 p-1.5 rounded-md bg-card border border-border/40 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                        title="Syntax kopieren"
+                      >
+                        {copiedBlock === block.name ? <CheckCheck className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
+                    {block.properties && (
+                      <div className="ml-11 mt-2 rounded-lg border border-border/40 overflow-hidden">
+                        <table className="w-full text-xs">
+                          <thead><tr className="bg-accent/50"><th className="text-left px-3 py-1.5 font-medium text-foreground">Eigenschaft</th><th className="text-left px-3 py-1.5 font-medium text-foreground">Werte</th></tr></thead>
+                          <tbody>
+                            {block.properties.map((prop) => (
+                              <tr key={prop.key} className="border-t border-border/30">
+                                <td className="px-3 py-1.5 font-mono text-primary">{prop.key}</td>
+                                <td className="px-3 py-1.5 text-muted-foreground">{prop.desc}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                     )}
-                  </button>
-                </div>
-
-                {/* Properties table */}
-                {block.properties && (
-                  <div className="ml-11 mt-2 rounded-lg border border-border/40 overflow-hidden">
-                    <table className="w-full text-xs">
-                      <thead>
-                        <tr className="bg-accent/50">
-                          <th className="text-left px-3 py-1.5 font-medium text-foreground">Eigenschaft</th>
-                          <th className="text-left px-3 py-1.5 font-medium text-foreground">Werte</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {block.properties.map((prop) => (
-                          <tr key={prop.key} className="border-t border-border/30">
-                            <td className="px-3 py-1.5 font-mono text-primary">{prop.key}</td>
-                            <td className="px-3 py-1.5 text-muted-foreground">{prop.desc}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
                   </div>
-                )}
-              </div>
-            );
-          })}
+                );
+              })}
+            </div>
+          )}
 
-          {/* AI Prompt section */}
-          <div className="border-t border-border/40 pt-5">
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
-                <Copy className="w-4 h-4 text-primary" />
-              </div>
-              <div>
-                <h4 className="font-semibold text-foreground">KI-Prompt</h4>
-                <p className="text-sm text-muted-foreground mt-0.5 mb-3">
-                  Klicke oben auf &quot;KI-Prompt kopieren&quot; um eine vollständige Zusammenfassung aller Blöcke und Formatierungsregeln in die Zwischenablage zu kopieren.
-                  Diesen Text kannst du einer KI (z.B. ChatGPT, Claude) als Systemanweisung geben, damit sie Inhalte im richtigen Format generiert.
+          {/* ─── Shortcuts Tab ─── */}
+          {tab === "shortcuts" && (
+            <div className="space-y-6">
+              {keyboardShortcuts.map((group) => (
+                <div key={group.category}>
+                  <h4 className="text-sm font-semibold text-foreground mb-2">{group.category}</h4>
+                  <div className="rounded-lg border border-border/40 overflow-hidden">
+                    {group.shortcuts.map((s, i) => (
+                      <div key={i} className={`flex items-center justify-between px-4 py-2.5 ${i > 0 ? "border-t border-border/30" : ""}`}>
+                        <span className="text-sm text-foreground/80">{s.desc}</span>
+                        <kbd className="px-2 py-1 rounded-md bg-accent/70 border border-border/40 font-mono text-xs text-foreground/70">{s.keys}</kbd>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+              <div className="rounded-lg bg-accent/30 border border-border/40 p-4">
+                <p className="text-sm text-muted-foreground">
+                  <strong className="text-foreground">Tipp:</strong> Markiere Text und druecke eine der Auto-Pairing-Tasten, um den Text automatisch zu umschliessen.
+                  Die meisten Formatierungen sind auch ueber den <strong className="text-foreground">Format-Popover</strong> erreichbar (Text markieren → Popover erscheint).
                 </p>
               </div>
             </div>
-          </div>
+          )}
+
+          {/* ─── Templates Tab ─── */}
+          {tab === "templates" && (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground mb-4">
+                Fertige Vorlagen zum Einfuegen. Klicke auf &quot;Vorschau&quot; um den Inhalt zu sehen, oder fuege ihn direkt in den Editor ein.
+              </p>
+              {exampleTemplates.map((tmpl, i) => (
+                <div key={i} className="rounded-lg border border-border/40 overflow-hidden">
+                  <div className="flex items-center justify-between px-4 py-3 bg-accent/30">
+                    <div>
+                      <h4 className="font-semibold text-foreground text-sm">{tmpl.name}</h4>
+                      <p className="text-xs text-muted-foreground mt-0.5">{tmpl.description}</p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0 ml-4">
+                      <button
+                        type="button"
+                        onClick={() => setPreviewTemplate(previewTemplate === i ? null : i)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                          previewTemplate === i ? "bg-primary/10 text-primary" : "bg-accent text-foreground hover:bg-accent/80"
+                        }`}
+                      >
+                        {previewTemplate === i ? "Ausblenden" : "Vorschau"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { navigator.clipboard.writeText(tmpl.content); setCopiedBlock(tmpl.name); setTimeout(() => setCopiedBlock(null), 2000); }}
+                        className="px-3 py-1.5 rounded-lg text-xs font-medium bg-accent text-foreground hover:bg-accent/80 transition-colors"
+                      >
+                        {copiedBlock === tmpl.name ? "Kopiert!" : "Kopieren"}
+                      </button>
+                      {onInsertTemplate && (
+                        <button
+                          type="button"
+                          onClick={() => { onInsertTemplate(tmpl.content); onClose(); }}
+                          className="px-3 py-1.5 rounded-lg text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                        >
+                          Einfuegen
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  {previewTemplate === i && (
+                    <div className="border-t border-border/40">
+                      <div className="p-4 max-h-80 overflow-y-auto">
+                        <pre className="text-xs font-mono text-foreground/70 whitespace-pre-wrap">{tmpl.content}</pre>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -3686,7 +4088,7 @@ export function SlashEditor({
         <IconModal onInsert={handleModalInsert} onClose={() => setModal(null)} />
       )}
       {showHelp && (
-        <BlockHelpOverlay onClose={() => setShowHelp(false)} />
+        <BlockHelpOverlay onClose={() => setShowHelp(false)} onInsertTemplate={(content) => { insertText(content); }} />
       )}
     </div>
   );
