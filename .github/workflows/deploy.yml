@@ -21,3 +21,4 @@ jobs:
             git pull origin main
             docker compose up --build -d
             docker image prune -f
+            docker builder prune -f --keep-storage=512MB
