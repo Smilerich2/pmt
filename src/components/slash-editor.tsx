@@ -1838,6 +1838,66 @@ export function SlashEditor({
   const [debouncedContent, setDebouncedContent] = useState(value);
   const [formatPopover, setFormatPopover] = useState<{ top: number; left: number } | null>(null);
   const formatPopoverRef = useRef<HTMLDivElement>(null);
+
+  // ─── Undo/Redo Stack ───
+  const historyRef = useRef<string[]>([value]);
+  const historyIndexRef = useRef(0);
+  const isUndoRedoRef = useRef(false);
+  const historyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Push to history (debounced for typing, immediate for format actions)
+  const pushHistory = useCallback((newValue: string, immediate = false) => {
+    if (isUndoRedoRef.current) return;
+    if (historyTimerRef.current) clearTimeout(historyTimerRef.current);
+    const push = () => {
+      const h = historyRef.current;
+      const idx = historyIndexRef.current;
+      // Don't push if value hasn't changed
+      if (h[idx] === newValue) return;
+      // Truncate any redo history
+      historyRef.current = h.slice(0, idx + 1);
+      historyRef.current.push(newValue);
+      // Limit to 100 entries
+      if (historyRef.current.length > 100) historyRef.current.shift();
+      historyIndexRef.current = historyRef.current.length - 1;
+    };
+    if (immediate) {
+      push();
+    } else {
+      historyTimerRef.current = setTimeout(push, 500);
+    }
+  }, []);
+
+  function undo() {
+    const idx = historyIndexRef.current;
+    if (idx <= 0) return;
+    // Flush any pending history push first
+    if (historyTimerRef.current) {
+      clearTimeout(historyTimerRef.current);
+      historyTimerRef.current = null;
+      const h = historyRef.current;
+      if (h[h.length - 1] !== value) {
+        historyRef.current = h.slice(0, historyIndexRef.current + 1);
+        historyRef.current.push(value);
+        historyIndexRef.current = historyRef.current.length - 1;
+      }
+    }
+    const newIdx = historyIndexRef.current - 1;
+    isUndoRedoRef.current = true;
+    onChange(historyRef.current[newIdx]);
+    historyIndexRef.current = newIdx;
+    requestAnimationFrame(() => { isUndoRedoRef.current = false; });
+  }
+
+  function redo() {
+    const idx = historyIndexRef.current;
+    if (idx >= historyRef.current.length - 1) return;
+    const newIdx = idx + 1;
+    isUndoRedoRef.current = true;
+    onChange(historyRef.current[newIdx]);
+    historyIndexRef.current = newIdx;
+    requestAnimationFrame(() => { isUndoRedoRef.current = false; });
+  }
   const scrollSyncSource = useRef<"editor" | "preview" | null>(null);
 
   // Debounce preview rendering (300ms)
@@ -1877,6 +1937,7 @@ export function SlashEditor({
       // Ensure newline before if needed
       const prefix = before.length > 0 && !before.endsWith("\n") ? "\n" : "";
       const newValue = before + prefix + text + after;
+      pushHistory(newValue, true);
       onChange(newValue);
 
       requestAnimationFrame(() => {
@@ -1888,7 +1949,7 @@ export function SlashEditor({
         }
       });
     },
-    [value, onChange]
+    [value, onChange, pushHistory]
   );
 
   const insertAtSlash = useCallback(
@@ -1899,6 +1960,7 @@ export function SlashEditor({
       const before = value.slice(0, slashPos);
       const after = value.slice(ta.selectionStart);
       const newValue = before + text + after;
+      pushHistory(newValue, true);
       onChange(newValue);
 
       requestAnimationFrame(() => {
@@ -1914,7 +1976,7 @@ export function SlashEditor({
       setFilter("");
       setSlashPos(null);
     },
-    [value, onChange, slashPos]
+    [value, onChange, slashPos, pushHistory]
   );
 
   // ─── Wrap selection (formatting) ───
@@ -1929,6 +1991,7 @@ export function SlashEditor({
 
       if (selected) {
         const newValue = value.slice(0, start) + prefix + selected + suffix + value.slice(end);
+        pushHistory(newValue, true);
         onChange(newValue);
         requestAnimationFrame(() => {
           ta.selectionStart = start + prefix.length;
@@ -1937,6 +2000,7 @@ export function SlashEditor({
         });
       } else {
         const newValue = value.slice(0, start) + prefix + placeholder + suffix + value.slice(end);
+        pushHistory(newValue, true);
         onChange(newValue);
         requestAnimationFrame(() => {
           ta.selectionStart = start + prefix.length;
@@ -1945,7 +2009,7 @@ export function SlashEditor({
         });
       }
     },
-    [value, onChange]
+    [value, onChange, pushHistory]
   );
 
   const wrapLinkSelection = useCallback(() => {
@@ -1957,6 +2021,7 @@ export function SlashEditor({
 
     if (selected) {
       const newValue = value.slice(0, start) + "[" + selected + "](url)" + value.slice(end);
+      pushHistory(newValue, true);
       onChange(newValue);
       requestAnimationFrame(() => {
         // Select "url"
@@ -1966,6 +2031,7 @@ export function SlashEditor({
       });
     } else {
       const newValue = value.slice(0, start) + "[Linktext](url)" + value.slice(end);
+      pushHistory(newValue, true);
       onChange(newValue);
       requestAnimationFrame(() => {
         // Select "Linktext"
@@ -1974,7 +2040,7 @@ export function SlashEditor({
         ta.focus();
       });
     }
-  }, [value, onChange]);
+  }, [value, onChange, pushHistory]);
 
   // ─── Inline upload (drag/paste) ───
 
@@ -2099,6 +2165,7 @@ export function SlashEditor({
     const selected = value.slice(start, end);
     if (!selected) return;
     const newValue = value.slice(0, start) + before + selected + after + value.slice(end);
+    pushHistory(newValue, true);
     onChange(newValue);
     setFormatPopover(null);
     requestAnimationFrame(() => {
@@ -2121,6 +2188,7 @@ export function SlashEditor({
     const prefix = needNewlineBefore ? "\n" : "";
     const suffix = needNewlineAfter ? "\n" : "";
     const newValue = value.slice(0, start) + prefix + before + selected + after + suffix + value.slice(end);
+    pushHistory(newValue, true);
     onChange(newValue);
     setFormatPopover(null);
     requestAnimationFrame(() => {
@@ -2186,6 +2254,16 @@ export function SlashEditor({
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     const mod = e.metaKey || e.ctrlKey;
+    if (mod && e.key === "z" && !e.shiftKey) {
+      e.preventDefault();
+      undo();
+      return;
+    }
+    if (mod && e.key === "z" && e.shiftKey) {
+      e.preventDefault();
+      redo();
+      return;
+    }
     if (mod && e.key === "b") {
       e.preventDefault();
       wrapSelection("**", "**", "fetter Text");
@@ -2265,6 +2343,7 @@ export function SlashEditor({
     const newValue = e.target.value;
     const pos = e.target.selectionStart;
     onChange(newValue);
+    pushHistory(newValue);
     setFormatPopover(null);
 
     const charBefore = pos >= 2 ? newValue[pos - 2] : "\n";
@@ -2917,6 +2996,7 @@ export function SlashEditor({
           <div className="flex items-center gap-3">
             <span>/ = Blöcke</span>
             <span>⌘B ⌘I ⌘K = Format</span>
+            <span>⌘Z = Zurück</span>
             <span>⌘D = Duplizieren</span>
             <span>⌘⇧↑↓ = Verschieben</span>
             {isFullscreen && <span>Esc = Vollbild beenden</span>}
