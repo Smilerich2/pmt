@@ -317,6 +317,18 @@ const slashCommands: SlashCommand[] = [
   },
 ];
 
+// ─── Shortcut Labels (displayed in slash menu) ───
+
+const isMac = typeof navigator !== "undefined" && /Mac/.test(navigator.userAgent);
+const modLabel = isMac ? "⌘" : "Ctrl+";
+const shiftLabel = isMac ? "⇧" : "Shift+";
+
+const COMMAND_SHORTCUTS: Record<string, string> = {
+  code: `${modLabel}${shiftLabel}E`,
+  hr: `${modLabel}${shiftLabel}H`,
+  bild: `${modLabel}${shiftLabel}P`,
+};
+
 // ─── Upload Helper ───
 
 async function uploadFile(file: File): Promise<string | null> {
@@ -2768,6 +2780,16 @@ export function SlashEditor({
       wrapSelection("```\n", "\n```", "code");
       return;
     }
+    if (mod && e.shiftKey && e.key === "h") {
+      e.preventDefault();
+      insertText("---\n");
+      return;
+    }
+    if (mod && e.shiftKey && e.key === "p") {
+      e.preventDefault();
+      setModal("image");
+      return;
+    }
     if (mod && e.key === "d") {
       e.preventDefault();
       duplicateLineOrBlock();
@@ -3485,9 +3507,16 @@ export function SlashEditor({
             {showMenu && flatFiltered.length > 0 && (
               <div
                 ref={menuRef}
-                className="absolute z-50 w-72 rounded-xl border border-border/60 bg-card shadow-xl overflow-hidden flex flex-col"
+                className="absolute z-50 w-80 rounded-xl border border-border/60 bg-card shadow-xl overflow-hidden flex flex-col animate-slash-menu-in"
                 style={{ top: menuPosition?.top ?? 0, left: menuPosition?.left ?? 16, maxHeight: "min(360px, 50vh)" }}
               >
+                <style dangerouslySetInnerHTML={{ __html: `
+                  @keyframes slashMenuIn {
+                    from { opacity: 0; transform: translateY(-4px) scale(0.97); }
+                    to { opacity: 1; transform: translateY(0) scale(1); }
+                  }
+                  .animate-slash-menu-in { animation: slashMenuIn 120ms ease-out; }
+                ` }} />
                 <div className="px-3 py-2 border-b border-border/40 shrink-0">
                   <p className="text-xs text-muted-foreground">
                     {filter ? (
@@ -3507,6 +3536,7 @@ export function SlashEditor({
                         </p>
                         {cmds.map((cmd) => {
                           const globalIndex = idx++;
+                          const shortcut = COMMAND_SHORTCUTS[cmd.id];
                           return (
                             <button
                               key={cmd.id}
@@ -3522,7 +3552,7 @@ export function SlashEditor({
                                   : "text-foreground/80 hover:bg-accent/50"
                               }`}
                             >
-                              <div className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 ${
+                              <div className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 transition-colors ${
                                 globalIndex === selectedIndex ? "bg-primary/15 text-primary" : "bg-accent/70 text-muted-foreground"
                               }`}>
                                 <cmd.icon className="w-3.5 h-3.5" />
@@ -3531,6 +3561,11 @@ export function SlashEditor({
                                 <span className="text-[13px] font-medium">{cmd.label}</span>
                                 <span className="text-[11px] text-muted-foreground ml-1.5 hidden sm:inline">{cmd.description}</span>
                               </div>
+                              {shortcut && (
+                                <kbd className="shrink-0 text-[10px] font-mono text-muted-foreground/50 bg-accent/60 px-1.5 py-0.5 rounded border border-border/30">
+                                  {shortcut}
+                                </kbd>
+                              )}
                             </button>
                           );
                         })}
