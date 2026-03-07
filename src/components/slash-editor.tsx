@@ -46,10 +46,15 @@ import {
   ArrowUpDown,
   CopyPlus,
   Focus,
+  LayoutGrid,
+  PanelTop,
+  Smile,
+  Trash2,
   type LucideIcon,
 } from "lucide-react";
 
 import { MarkdownRenderer } from "./markdown-renderer";
+import { AVAILABLE_ICONS, InlineIcon } from "./content-blocks";
 
 // ─── Types ───
 
@@ -282,6 +287,33 @@ const slashCommands: SlashCommand[] = [
     category: "Blöcke",
     action: "modal",
     modalType: "spalten",
+  },
+  {
+    id: "karten",
+    label: "Karten",
+    description: "Karten-Grid mit Titel, Badge und Inhalt",
+    icon: LayoutGrid,
+    category: "Blöcke",
+    action: "modal",
+    modalType: "karten",
+  },
+  {
+    id: "tabs",
+    label: "Tabs",
+    description: "Tab-Navigation mit umschaltbaren Inhalten",
+    icon: PanelTop,
+    category: "Blöcke",
+    action: "modal",
+    modalType: "tabs",
+  },
+  {
+    id: "icon",
+    label: "Icon",
+    description: "Lucide-Icon inline einfügen",
+    icon: Smile,
+    category: "Medien",
+    action: "modal",
+    modalType: "icon",
   },
 ];
 
@@ -1368,6 +1400,385 @@ function SpaltenModal({
         <ModalFooter onClose={onClose} onConfirm={generate} label="Einfügen" />
       </div>
     </ModalShell>
+  );
+}
+
+// ─── Icon Picker Modal ───
+
+function IconModal({
+  onInsert,
+  onClose,
+}: {
+  onInsert: (md: string) => void;
+  onClose: () => void;
+}) {
+  const [search, setSearch] = useState("");
+  const filtered = AVAILABLE_ICONS.filter((name) =>
+    name.toLowerCase().includes(search.toLowerCase())
+  );
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
+      <div
+        className="bg-card border border-border/60 rounded-xl shadow-xl w-full max-w-md max-h-[70vh] flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between p-4 border-b border-border/40">
+          <h3 className="font-semibold text-foreground">Icon einfugen</h3>
+          <button type="button" onClick={onClose} className="text-muted-foreground hover:text-foreground">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <div className="px-4 pt-3">
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Icon suchen..."
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            autoFocus
+          />
+        </div>
+        <div className="flex-1 overflow-y-auto p-4">
+          <div className="grid grid-cols-6 gap-2">
+            {filtered.map((name) => (
+              <button
+                key={name}
+                type="button"
+                onClick={() => onInsert(`:icon[${name}] `)}
+                className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-accent transition-colors"
+                title={name}
+              >
+                <InlineIcon name={name} size={20} />
+                <span className="text-[9px] text-muted-foreground truncate max-w-full">{name}</span>
+              </button>
+            ))}
+          </div>
+          {filtered.length === 0 && (
+            <p className="text-sm text-muted-foreground text-center py-8">Kein Icon gefunden</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Karten Modal ───
+
+type CardEntry = { title: string; badge: string; badgeColor: string; content: string };
+
+function KartenModal({
+  onInsert,
+  onClose,
+}: {
+  onInsert: (md: string) => void;
+  onClose: () => void;
+}) {
+  const [cards, setCards] = useState<CardEntry[]>([
+    { title: "Karte 1", badge: "", badgeColor: "gray", content: "Inhalt hier..." },
+    { title: "Karte 2", badge: "", badgeColor: "gray", content: "Inhalt hier..." },
+  ]);
+  const [columns, setColumns] = useState(2);
+
+  function addCard() {
+    setCards([...cards, { title: `Karte ${cards.length + 1}`, badge: "", badgeColor: "gray", content: "Inhalt hier..." }]);
+  }
+
+  function removeCard(index: number) {
+    if (cards.length <= 1) return;
+    setCards(cards.filter((_, i) => i !== index));
+  }
+
+  function updateCard(index: number, field: keyof CardEntry, value: string) {
+    setCards(cards.map((c, i) => i === index ? { ...c, [field]: value } : c));
+  }
+
+  function generate() {
+    const lines = [`:::karten${columns !== 2 ? `|${columns}` : ""}`];
+    cards.forEach((card) => {
+      const parts = [card.title];
+      if (card.badge) parts.push(card.badge);
+      if (card.badge && card.badgeColor !== "gray") parts.push(card.badgeColor);
+      lines.push(`---${parts.join("|")}`);
+      lines.push(card.content);
+    });
+    lines.push(":::");
+    onInsert(lines.join("\n") + "\n");
+  }
+
+  const colorOptions = ["gray", "orange", "blue", "green", "red", "purple", "beige"];
+  const colorLabels: Record<string, string> = { gray: "Grau", orange: "Orange", blue: "Blau", green: "Grun", red: "Rot", purple: "Violett", beige: "Beige" };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
+      <div
+        className="bg-card border border-border/60 rounded-xl shadow-xl w-full max-w-xl max-h-[85vh] flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between p-4 border-b border-border/40">
+          <h3 className="font-semibold text-foreground">Karten-Grid einfugen</h3>
+          <button type="button" onClick={onClose} className="text-muted-foreground hover:text-foreground">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {/* Column count */}
+          <div>
+            <label className="text-sm text-muted-foreground mb-1.5 block">Spalten</label>
+            <div className="flex gap-1.5">
+              {[2, 3].map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => setColumns(n)}
+                  className={`flex-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                    columns === n ? "bg-primary text-primary-foreground" : "bg-accent/50 text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {n} Spalten
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Cards */}
+          {cards.map((card, i) => (
+            <div key={i} className="rounded-lg border border-border/40 p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-muted-foreground">Karte {i + 1}</span>
+                <button
+                  type="button"
+                  onClick={() => removeCard(i)}
+                  disabled={cards.length <= 1}
+                  className="p-1 rounded text-muted-foreground hover:text-red-500 disabled:opacity-30 transition-colors"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+              <input
+                value={card.title}
+                onChange={(e) => updateCard(i, "title", e.target.value)}
+                placeholder="Titel"
+                className="w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm"
+              />
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  value={card.badge}
+                  onChange={(e) => updateCard(i, "badge", e.target.value)}
+                  placeholder="Badge (optional)"
+                  className="rounded-md border border-input bg-background px-3 py-1.5 text-sm"
+                />
+                <select
+                  value={card.badgeColor}
+                  onChange={(e) => updateCard(i, "badgeColor", e.target.value)}
+                  className="rounded-md border border-input bg-background px-3 py-1.5 text-sm"
+                >
+                  {colorOptions.map((c) => (
+                    <option key={c} value={c}>{colorLabels[c]}</option>
+                  ))}
+                </select>
+              </div>
+              <textarea
+                value={card.content}
+                onChange={(e) => updateCard(i, "content", e.target.value)}
+                rows={2}
+                placeholder="Inhalt (Markdown)"
+                className="w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm font-mono resize-none"
+              />
+            </div>
+          ))}
+
+          <button
+            type="button"
+            onClick={addCard}
+            className="w-full py-2 rounded-lg border-2 border-dashed border-border/60 text-sm text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors"
+          >
+            + Karte hinzufugen
+          </button>
+        </div>
+
+        <div className="flex justify-end gap-2 p-4 border-t border-border/40">
+          <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground transition-colors">
+            Abbrechen
+          </button>
+          <button type="button" onClick={generate} className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors">
+            Einfugen
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Tabs Modal ───
+
+type TabEntry = { title: string; icon: string; content: string };
+
+function TabsModal({
+  onInsert,
+  onClose,
+}: {
+  onInsert: (md: string) => void;
+  onClose: () => void;
+}) {
+  const [tabs, setTabs] = useState<TabEntry[]>([
+    { title: "Tab 1", icon: "", content: "Inhalt hier..." },
+    { title: "Tab 2", icon: "", content: "Inhalt hier..." },
+  ]);
+  const [iconSearch, setIconSearch] = useState<number | null>(null);
+  const [iconFilter, setIconFilter] = useState("");
+
+  function addTab() {
+    setTabs([...tabs, { title: `Tab ${tabs.length + 1}`, icon: "", content: "Inhalt hier..." }]);
+  }
+
+  function removeTab(index: number) {
+    if (tabs.length <= 1) return;
+    setTabs(tabs.filter((_, i) => i !== index));
+  }
+
+  function updateTab(index: number, field: keyof TabEntry, value: string) {
+    setTabs(tabs.map((t, i) => i === index ? { ...t, [field]: value } : t));
+  }
+
+  function generate() {
+    const lines = [":::tabs"];
+    tabs.forEach((tab) => {
+      const parts = [tab.title];
+      if (tab.icon) parts.push(tab.icon);
+      lines.push(`---${parts.join("|")}`);
+      lines.push(tab.content);
+    });
+    lines.push(":::");
+    onInsert(lines.join("\n") + "\n");
+  }
+
+  const filteredIcons = AVAILABLE_ICONS.filter((name) =>
+    name.toLowerCase().includes(iconFilter.toLowerCase())
+  );
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
+      <div
+        className="bg-card border border-border/60 rounded-xl shadow-xl w-full max-w-xl max-h-[85vh] flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between p-4 border-b border-border/40">
+          <h3 className="font-semibold text-foreground">Tabs einfugen</h3>
+          <button type="button" onClick={onClose} className="text-muted-foreground hover:text-foreground">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {/* Preview tab bar */}
+          <div className="flex items-center gap-1 border-b-2 border-border/60 pb-0 overflow-x-auto">
+            {tabs.map((tab, i) => (
+              <div key={i} className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium border-b-2 -mb-[2px] border-primary text-primary whitespace-nowrap">
+                {tab.icon && <InlineIcon name={tab.icon} size={14} />}
+                {tab.title || `Tab ${i + 1}`}
+              </div>
+            ))}
+          </div>
+
+          {/* Tab entries */}
+          {tabs.map((tab, i) => (
+            <div key={i} className="rounded-lg border border-border/40 p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-muted-foreground">Tab {i + 1}</span>
+                <button
+                  type="button"
+                  onClick={() => removeTab(i)}
+                  disabled={tabs.length <= 1}
+                  className="p-1 rounded text-muted-foreground hover:text-red-500 disabled:opacity-30 transition-colors"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+              <div className="grid grid-cols-[1fr,auto] gap-2">
+                <input
+                  value={tab.title}
+                  onChange={(e) => updateTab(i, "title", e.target.value)}
+                  placeholder="Tab-Titel"
+                  className="rounded-md border border-input bg-background px-3 py-1.5 text-sm"
+                />
+                <button
+                  type="button"
+                  onClick={() => { setIconSearch(iconSearch === i ? null : i); setIconFilter(""); }}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md border text-sm transition-colors ${
+                    tab.icon ? "border-primary/40 text-primary" : "border-input text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {tab.icon ? <InlineIcon name={tab.icon} size={14} /> : <Smile className="w-3.5 h-3.5" />}
+                  {tab.icon || "Icon"}
+                </button>
+              </div>
+              {/* Icon picker inline */}
+              {iconSearch === i && (
+                <div className="rounded-md border border-border/40 bg-background p-2">
+                  <input
+                    value={iconFilter}
+                    onChange={(e) => setIconFilter(e.target.value)}
+                    placeholder="Icon suchen..."
+                    className="w-full rounded border border-input px-2 py-1 text-xs mb-2"
+                    autoFocus
+                  />
+                  <div className="grid grid-cols-8 gap-1 max-h-32 overflow-y-auto">
+                    {tab.icon && (
+                      <button
+                        type="button"
+                        onClick={() => { updateTab(i, "icon", ""); setIconSearch(null); }}
+                        className="flex items-center justify-center p-1.5 rounded hover:bg-red-50 text-red-400"
+                        title="Icon entfernen"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
+                    {filteredIcons.map((name) => (
+                      <button
+                        key={name}
+                        type="button"
+                        onClick={() => { updateTab(i, "icon", name); setIconSearch(null); }}
+                        className={`flex items-center justify-center p-1.5 rounded hover:bg-accent transition-colors ${
+                          tab.icon === name ? "bg-primary/10 text-primary" : ""
+                        }`}
+                        title={name}
+                      >
+                        <InlineIcon name={name} size={16} />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <textarea
+                value={tab.content}
+                onChange={(e) => updateTab(i, "content", e.target.value)}
+                rows={3}
+                placeholder="Inhalt (Markdown — alle Bloecke erlaubt)"
+                className="w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm font-mono resize-none"
+              />
+            </div>
+          ))}
+
+          <button
+            type="button"
+            onClick={addTab}
+            className="w-full py-2 rounded-lg border-2 border-dashed border-border/60 text-sm text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors"
+          >
+            + Tab hinzufugen
+          </button>
+        </div>
+
+        <div className="flex justify-end gap-2 p-4 border-t border-border/40">
+          <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground transition-colors">
+            Abbrechen
+          </button>
+          <button type="button" onClick={generate} className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors">
+            Einfugen
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -3061,6 +3472,15 @@ export function SlashEditor({
       )}
       {modal === "spalten" && (
         <SpaltenModal onInsert={handleModalInsert} onClose={() => setModal(null)} />
+      )}
+      {modal === "karten" && (
+        <KartenModal onInsert={handleModalInsert} onClose={() => setModal(null)} />
+      )}
+      {modal === "tabs" && (
+        <TabsModal onInsert={handleModalInsert} onClose={() => setModal(null)} />
+      )}
+      {modal === "icon" && (
+        <IconModal onInsert={handleModalInsert} onClose={() => setModal(null)} />
       )}
       {showHelp && (
         <BlockHelpOverlay onClose={() => setShowHelp(false)} />

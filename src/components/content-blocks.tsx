@@ -447,6 +447,160 @@ export function Quiz({
   );
 }
 
+// ─── Icon Map (Lucide SVG paths) ───
+
+const ICON_PATHS: Record<string, string> = {
+  "book-open": "M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z",
+  "layers": "m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0l8.57-3.908a1 1 0 0 0 0-1.832z M22 17.65l-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65 M22 12.65l-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65",
+  "package": "M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z M12 22V12 M3.3 7l7.703 4.734a2 2 0 0 0 1.994 0L20.7 7 M7.5 4.27l9 5.15",
+  "target": "M12 12m-10 0a10 10 0 1 0 20 0a10 10 0 1 0-20 0 M12 12m-6 0a6 6 0 1 0 12 0a6 6 0 1 0-12 0 M12 12m-2 0a2 2 0 1 0 4 0a2 2 0 1 0-4 0",
+  "zap": "M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z",
+  "check-circle": "M12 12m-10 0a10 10 0 1 0 20 0a10 10 0 1 0-20 0 M9 12l2 2 4-4",
+  "x-circle": "M12 12m-10 0a10 10 0 1 0 20 0a10 10 0 1 0-20 0 M15 9l-6 6 M9 9l6 6",
+  "info": "M12 12m-10 0a10 10 0 1 0 20 0a10 10 0 1 0-20 0 M12 16v-4 M12 8h.01",
+  "lightbulb": "M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5 M9 18h6 M10 22h4",
+  "alert-triangle": "m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z M12 9v4 M12 17h.01",
+  "arrow-right": "M5 12h14 M12 5l7 7-7 7",
+  "check": "M20 6L9 17l-5-5",
+  "star": "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2",
+  "clock": "M12 12m-10 0a10 10 0 1 0 20 0a10 10 0 1 0-20 0 M12 6v6l4 2",
+  "graduation-cap": "M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z M22 10v6 M6 12.5V16a6 3 0 0 0 12 0v-3.5",
+  "settings": "M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z M12 12m-3 0a3 3 0 1 0 6 0a3 3 0 1 0-6 0",
+  "heart": "M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z",
+  "search": "M11 11m-8 0a8 8 0 1 0 16 0a8 8 0 1 0-16 0 M21 21l-4.3-4.3",
+  "plus": "M5 12h14 M12 5v14",
+  "minus": "M5 12h14",
+  "eye": "M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0 M12 12m-3 0a3 3 0 1 0 6 0a3 3 0 1 0-6 0",
+  "pen": "M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z",
+  "flask": "M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2 M8.5 2h7 M7 16.5h10",
+  "wrench": "M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z",
+  "truck": "M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2 M15 18H9 M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14 M17 18m-2 0a2 2 0 1 0 4 0a2 2 0 1 0-4 0 M7 18m-2 0a2 2 0 1 0 4 0a2 2 0 1 0-4 0",
+  "recycle": "M7 19H4.815a1.83 1.83 0 0 1-1.57-.881 1.785 1.785 0 0 1-.004-1.784L7.196 9.5 M11 19h8.203a1.83 1.83 0 0 0 1.556-.89 1.784 1.784 0 0 0 0-1.775l-1.226-2.12 M14 16l-3 3 3 3 M8.293 13.596L7.196 9.5 3.1 10.598 M9.344 5.811l1.093-1.892A1.83 1.83 0 0 1 12.02 3a1.784 1.784 0 0 1 1.558.89l3.96 6.835 M20.898 13.405l-3.964-6.868 M2.992 15.5l4.096 1.098",
+};
+
+export function InlineIcon({ name, size = 18 }: { name: string; size?: number }) {
+  const pathData = ICON_PATHS[name];
+  if (!pathData) return null;
+
+  // Split multiple path segments (separated by " M" keeping the M)
+  const segments = pathData.split(/(?= M)/g).map((s) => s.trim());
+
+  return (
+    <svg
+      className="inline-block align-middle"
+      xmlns="http://www.w3.org/2000/svg"
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      {segments.map((seg, i) => {
+        // Check for circle shorthand: "M cx cy m -r 0 a r r 0 1 0 2r 0 a..."
+        const circleMatch = seg.match(/^M(\d+\.?\d*) (\d+\.?\d*)m-(\d+\.?\d*) 0a(\d+\.?\d*)/);
+        if (circleMatch) {
+          return <circle key={i} cx={circleMatch[1]} cy={circleMatch[2]} r={circleMatch[3]} />;
+        }
+        return <path key={i} d={seg} />;
+      })}
+    </svg>
+  );
+}
+
+export const AVAILABLE_ICONS = Object.keys(ICON_PATHS);
+
+// ─── Tabs Block ───
+
+export function TabsBlock({
+  tabs,
+  renderContent,
+}: {
+  tabs: { title: string; icon?: string; content: string }[];
+  renderContent: (content: string) => React.ReactNode;
+}) {
+  const [activeTab, setActiveTab] = useState(0);
+
+  return (
+    <div className="my-6">
+      {/* Tab bar */}
+      <div className="flex items-center gap-1 border-b-2 border-border/60 overflow-x-auto">
+        {tabs.map((tab, i) => (
+          <button
+            key={i}
+            type="button"
+            onClick={() => setActiveTab(i)}
+            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 -mb-[2px] transition-colors ${
+              i === activeTab
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+            }`}
+          >
+            {tab.icon && <InlineIcon name={tab.icon} size={16} />}
+            {tab.title}
+          </button>
+        ))}
+      </div>
+      {/* Tab content */}
+      <div className="pt-4">
+        {renderContent(tabs[activeTab]?.content || "")}
+      </div>
+    </div>
+  );
+}
+
+// ─── Karten (Cards) Block ───
+
+const badgeColors: Record<string, string> = {
+  orange: "bg-orange-50 text-orange-600 border-orange-200",
+  gray: "bg-gray-100 text-gray-600 border-gray-200",
+  blue: "bg-blue-50 text-blue-600 border-blue-200",
+  green: "bg-emerald-50 text-emerald-600 border-emerald-200",
+  red: "bg-red-50 text-red-600 border-red-200",
+  purple: "bg-purple-50 text-purple-600 border-purple-200",
+  beige: "bg-amber-50 text-amber-700 border-amber-200",
+};
+
+export function KartenBlock({
+  cards,
+  columns,
+  renderContent,
+}: {
+  cards: { title: string; badge?: string; badgeColor?: string; content: string }[];
+  columns?: number;
+  renderContent: (content: string) => React.ReactNode;
+}) {
+  const cols = columns || (cards.length >= 3 ? 3 : 2);
+  const gridClass = cols === 3
+    ? "grid grid-cols-1 md:grid-cols-3 gap-4 my-6"
+    : "grid grid-cols-1 md:grid-cols-2 gap-4 my-6";
+
+  return (
+    <div className={gridClass}>
+      {cards.map((card, i) => {
+        const colorClass = badgeColors[card.badgeColor || "gray"] || badgeColors.gray;
+        return (
+          <div key={i} className="rounded-xl border border-border/60 bg-card p-5 shadow-sm">
+            {card.badge && (
+              <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold border mb-3 ${colorClass}`}>
+                {card.badge}
+              </span>
+            )}
+            <h3 className={`font-bold text-lg mb-2 ${card.badgeColor === "orange" ? "text-primary" : "text-foreground"}`}>
+              {card.title}
+            </h3>
+            <div className="text-sm text-foreground/80 leading-relaxed">
+              {renderContent(card.content)}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ─── Spalten (Columns) ───
 
 export function SpaltenBlock({ columns, renderColumn }: { columns: string[]; renderColumn?: (content: string) => React.ReactNode }) {

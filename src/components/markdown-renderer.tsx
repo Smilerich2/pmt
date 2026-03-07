@@ -6,7 +6,7 @@ import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import rehypeRaw from "rehype-raw";
 import "katex/dist/katex.min.css";
-import { Callout, Accordion, Quiz, BildBlock, DemoBlock, HtmlDemoBlock, GlossarTooltip, SpaltenBlock } from "./content-blocks";
+import { Callout, Accordion, Quiz, BildBlock, DemoBlock, HtmlDemoBlock, GlossarTooltip, SpaltenBlock, TabsBlock, KartenBlock, InlineIcon } from "./content-blocks";
 
 export type GlossaryEntry = { term: string; definition: string };
 
@@ -30,7 +30,9 @@ type Block =
   | { type: "bild"; config: BildConfig }
   | { type: "demo"; name: string; height?: number; title?: string }
   | { type: "htmldemo"; html: string; css: string; js: string; height?: number; title?: string }
-  | { type: "spalten"; columns: string[] };
+  | { type: "spalten"; columns: string[] }
+  | { type: "tabs"; tabs: { title: string; icon?: string; content: string }[] }
+  | { type: "karten"; cards: { title: string; badge?: string; badgeColor?: string; content: string }[]; columns?: number };
 
 function parseContent(raw: string): Block[] {
   const blocks: Block[] = [];
@@ -162,6 +164,52 @@ function parseContent(raw: string): Block[] {
       continue;
     }
 
+    // ─── Tabs: :::tabs ───
+    if (line.trim() === ":::tabs") {
+      flushMarkdown();
+      const tabs: { title: string; icon?: string; content: string }[] = [];
+      let currentTab: { title: string; icon?: string; lines: string[] } | null = null;
+      i++;
+      while (i < lines.length && lines[i].trim() !== ":::") {
+        const tabMatch = lines[i].match(/^---(.+?)(?:\|(.+?))?$/);
+        if (tabMatch) {
+          if (currentTab) tabs.push({ title: currentTab.title, icon: currentTab.icon, content: currentTab.lines.join("\n").trim() });
+          currentTab = { title: tabMatch[1].trim(), icon: tabMatch[2]?.trim(), lines: [] };
+        } else if (currentTab) {
+          currentTab.lines.push(lines[i]);
+        }
+        i++;
+      }
+      if (currentTab) tabs.push({ title: currentTab.title, icon: currentTab.icon, content: currentTab.lines.join("\n").trim() });
+      blocks.push({ type: "tabs", tabs });
+      i++; // skip closing :::
+      continue;
+    }
+
+    // ─── Karten: :::karten ───
+    const kartenMatch = line.match(/^:::karten(?:\|(\d))?$/);
+    if (kartenMatch) {
+      flushMarkdown();
+      const columns = kartenMatch[1] ? parseInt(kartenMatch[1], 10) : undefined;
+      const cards: { title: string; badge?: string; badgeColor?: string; content: string }[] = [];
+      let currentCard: { title: string; badge?: string; badgeColor?: string; lines: string[] } | null = null;
+      i++;
+      while (i < lines.length && lines[i].trim() !== ":::") {
+        const cardMatch = lines[i].match(/^---(.+?)(?:\|(.+?))?(?:\|(.+?))?$/);
+        if (cardMatch) {
+          if (currentCard) cards.push({ title: currentCard.title, badge: currentCard.badge, badgeColor: currentCard.badgeColor, content: currentCard.lines.join("\n").trim() });
+          currentCard = { title: cardMatch[1].trim(), badge: cardMatch[2]?.trim(), badgeColor: cardMatch[3]?.trim(), lines: [] };
+        } else if (currentCard) {
+          currentCard.lines.push(lines[i]);
+        }
+        i++;
+      }
+      if (currentCard) cards.push({ title: currentCard.title, badge: currentCard.badge, badgeColor: currentCard.badgeColor, content: currentCard.lines.join("\n").trim() });
+      blocks.push({ type: "karten", cards, columns });
+      i++; // skip closing :::
+      continue;
+    }
+
     // ─── Callout: :::merke / :::tipp / :::warnung / :::info ───
     const calloutMatch = line.match(/^:::(merke|tipp|warnung|info)\s*$/);
     if (calloutMatch) {
@@ -238,6 +286,12 @@ function parseContent(raw: string): Block[] {
   return blocks;
 }
 
+function preprocessIcons(text: string): string {
+  return text.replace(/:icon\[(.+?)\]/g, (_match, name: string) => {
+    return `<inline-icon name="${name.trim()}"></inline-icon>`;
+  });
+}
+
 function preprocessGlossar(text: string, glossary: GlossaryEntry[]): string {
   if (!glossary.length) return text;
   return text.replace(/::glossar\[(.+?)\]/g, (_match, term: string) => {
@@ -294,6 +348,10 @@ function renderBlocks(blocks: Block[], glossary: GlossaryEntry[] = []) {
         return <HtmlDemoBlock key={i} html={block.html} css={block.css} js={block.js} height={block.height} title={block.title} />;
       case "spalten":
         return <SpaltenBlock key={i} columns={block.columns} renderColumn={(col) => <>{renderBlocks(parseContent(col), glossary)}</>} />;
+      case "tabs":
+        return <TabsBlock key={i} tabs={block.tabs} renderContent={(content) => <>{renderBlocks(parseContent(content), glossary)}</>} />;
+      case "karten":
+        return <KartenBlock key={i} cards={block.cards} columns={block.columns} renderContent={(content) => <>{renderBlocks(parseContent(content), glossary)}</>} />;
       case "markdown":
         return <MarkdownBlock key={i} content={block.content} glossary={glossary} />;
     }
@@ -306,7 +364,7 @@ export function MarkdownRenderer({ content, glossary = [] }: { content: string; 
 }
 
 function MarkdownBlock({ content, glossary = [] }: { content: string; glossary?: GlossaryEntry[] }) {
-  const processed = preprocessGlossar(content, glossary);
+  const processed = preprocessIcons(preprocessGlossar(content, glossary));
   return (
     <ReactMarkdown
       remarkPlugins={[remarkGfm, remarkMath]}
@@ -414,9 +472,14 @@ function MarkdownBlock({ content, glossary = [] }: { content: string; glossary?:
           />
         ),
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ...({ glossar: ({ term, definition, children }: any) => (
-          <GlossarTooltip term={term || children} definition={definition || ""} />
-        ) } as any),
+        ...({
+          glossar: ({ term, definition, children }: any) => (
+            <GlossarTooltip term={term || children} definition={definition || ""} />
+          ),
+          "inline-icon": ({ name }: any) => (
+            <InlineIcon name={name || ""} />
+          ),
+        } as any),
       }}
     >
       {processed}
