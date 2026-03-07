@@ -16,6 +16,8 @@ import {
   Check,
   Columns2,
   ImagePlus,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 
 // ─── Typen ───
@@ -643,6 +645,7 @@ export function HtmlPageEditor({
   const [isDragging, setIsDragging] = useState(false);
   const [quickUploading, setQuickUploading] = useState(false);
   const [debouncedSrcDoc, setDebouncedSrcDoc] = useState("");
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const cursorPosRef = useRef<{ start: number; end: number }>({ start: 0, end: 0 });
   const quickUploadRef = useRef<HTMLInputElement>(null);
@@ -658,6 +661,18 @@ export function HtmlPageEditor({
     }, 300);
     return () => clearTimeout(timer);
   }, [value, mode]);
+
+  // Escape beendet Vollbild
+  useEffect(() => {
+    if (!isFullscreen) return;
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "Escape" && !showMedia) {
+        setIsFullscreen(false);
+      }
+    }
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
+  }, [isFullscreen, showMedia]);
 
   // Cursor-Position speichern (wird vor Modal-Öffnung und von Event-Handlern aufgerufen)
   const saveCursorPos = useCallback(() => {
@@ -782,7 +797,11 @@ export function HtmlPageEditor({
 
   return (
     <>
-      <div className="border border-border/60 rounded-xl overflow-hidden">
+      <div className={
+        isFullscreen
+          ? "fixed inset-0 z-50 bg-background flex flex-col"
+          : "border border-border/60 rounded-xl overflow-hidden"
+      }>
         {/* Toolbar */}
         <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-border/60 bg-muted/30">
           {/* Modus-Toggle */}
@@ -885,23 +904,33 @@ export function HtmlPageEditor({
                 </>
               )}
             </button>
+            <div className="w-px h-4 bg-border/60 mx-0.5" />
+            <button
+              type="button"
+              onClick={() => setIsFullscreen(!isFullscreen)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+              title={isFullscreen ? "Vollbild beenden (Esc)" : "Vollbild"}
+            >
+              {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+              {isFullscreen ? "Beenden" : "Vollbild"}
+            </button>
           </div>
         </div>
 
         {/* Inhalt: Code, Split oder Vorschau */}
         {mode === "preview" ? (
-          <div className="bg-white min-h-[520px]">
+          <div className={`bg-white ${isFullscreen ? "flex-1 min-h-0" : "min-h-[520px]"}`}>
             <iframe
               srcDoc={srcDoc}
-              className="w-full border-0 min-h-[520px]"
+              className={`w-full border-0 ${isFullscreen ? "h-full" : "min-h-[520px]"}`}
               sandbox="allow-scripts"
               title="HTML-Vorschau"
             />
           </div>
         ) : (
-          <div className={mode === "split" ? "flex" : ""}>
+          <div className={`${mode === "split" ? "flex" : ""} ${isFullscreen ? "flex-1 min-h-0" : ""}`}>
             <div
-              className={`relative ${mode === "split" ? "w-1/2 border-r border-border/60" : "w-full"}`}
+              className={`relative ${mode === "split" ? "w-1/2 border-r border-border/60" : "w-full"} ${isFullscreen ? "flex flex-col" : ""}`}
               onDragOver={handleDragOver}
               onDragEnter={handleDragEnter}
               onDragLeave={handleDragLeave}
@@ -920,7 +949,7 @@ export function HtmlPageEditor({
                 onKeyUp={saveCursorPos}
                 onClick={saveCursorPos}
                 onPaste={handlePaste}
-                className="w-full min-h-[520px] p-4 font-mono text-sm bg-[#1e1e2e] text-[#cdd6f4] resize-y focus:outline-none leading-relaxed"
+                className={`w-full p-4 font-mono text-sm bg-[#1e1e2e] text-[#cdd6f4] focus:outline-none leading-relaxed ${isFullscreen ? "flex-1 min-h-0 resize-none" : "min-h-[520px] resize-y"}`}
                 placeholder="HTML hier einfügen oder oben auf 'Template' klicken..."
                 spellCheck={false}
                 autoCapitalize="off"
@@ -928,10 +957,10 @@ export function HtmlPageEditor({
               />
             </div>
             {mode === "split" && (
-              <div className="w-1/2 bg-white min-h-[520px]">
+              <div className={`w-1/2 bg-white ${isFullscreen ? "min-h-0" : "min-h-[520px]"}`}>
                 <iframe
                   srcDoc={debouncedSrcDoc}
-                  className="w-full border-0 min-h-[520px]"
+                  className={`w-full border-0 ${isFullscreen ? "h-full" : "min-h-[520px]"}`}
                   sandbox="allow-scripts"
                   title="HTML-Vorschau"
                 />
