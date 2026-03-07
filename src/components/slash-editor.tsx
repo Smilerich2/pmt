@@ -1836,6 +1836,8 @@ export function SlashEditor({
   const quickUploadRef = useRef<HTMLInputElement>(null);
   const [quickUploading, setQuickUploading] = useState(false);
   const [debouncedContent, setDebouncedContent] = useState(value);
+  const [formatPopover, setFormatPopover] = useState<{ top: number; left: number } | null>(null);
+  const formatPopoverRef = useRef<HTMLDivElement>(null);
   const scrollSyncSource = useRef<"editor" | "preview" | null>(null);
 
   // Debounce preview rendering (300ms)
@@ -2040,6 +2042,95 @@ export function SlashEditor({
     e.target.value = "";
   }
 
+  // ─── Format Popover (appears on text selection) ───
+
+  function calculateSelectionPosition(): { top: number; left: number } | null {
+    const ta = textareaRef.current;
+    if (!ta) return null;
+    const start = ta.selectionStart;
+    const end = ta.selectionEnd;
+    if (start === end) return null;
+
+    const mirror = document.createElement("div");
+    const style = window.getComputedStyle(ta);
+    mirror.style.position = "absolute";
+    mirror.style.visibility = "hidden";
+    mirror.style.whiteSpace = "pre-wrap";
+    mirror.style.wordWrap = "break-word";
+    mirror.style.width = ta.clientWidth + "px";
+    mirror.style.font = style.font;
+    mirror.style.lineHeight = style.lineHeight;
+    mirror.style.padding = style.padding;
+    mirror.style.border = style.border;
+    mirror.style.boxSizing = style.boxSizing;
+
+    const textBefore = ta.value.substring(0, start);
+    const span = document.createElement("span");
+    mirror.textContent = textBefore;
+    span.textContent = ta.value.substring(start, end) || ".";
+    mirror.appendChild(span);
+    document.body.appendChild(mirror);
+
+    const top = span.offsetTop - ta.scrollTop - 44;
+    const left = Math.min(span.offsetLeft + span.offsetWidth / 2, ta.clientWidth - 160);
+
+    document.body.removeChild(mirror);
+    return { top: Math.max(-44, top), left: Math.max(12, left) };
+  }
+
+  function handleSelectionChange() {
+    const ta = textareaRef.current;
+    if (!ta || showMenu) return;
+    const start = ta.selectionStart;
+    const end = ta.selectionEnd;
+    if (start !== end && end - start >= 1) {
+      const pos = calculateSelectionPosition();
+      setFormatPopover(pos);
+    } else {
+      setFormatPopover(null);
+    }
+  }
+
+  function applyInlineFormat(before: string, after: string) {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    const start = ta.selectionStart;
+    const end = ta.selectionEnd;
+    const selected = value.slice(start, end);
+    if (!selected) return;
+    const newValue = value.slice(0, start) + before + selected + after + value.slice(end);
+    onChange(newValue);
+    setFormatPopover(null);
+    requestAnimationFrame(() => {
+      ta.selectionStart = start + before.length;
+      ta.selectionEnd = start + before.length + selected.length;
+      ta.focus();
+    });
+  }
+
+  function applyBlockFormat(before: string, after: string) {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    const start = ta.selectionStart;
+    const end = ta.selectionEnd;
+    const selected = value.slice(start, end);
+    if (!selected) return;
+    // Block-level: ensure newlines around the wrapped block
+    const needNewlineBefore = start > 0 && value[start - 1] !== "\n";
+    const needNewlineAfter = end < value.length && value[end] !== "\n";
+    const prefix = needNewlineBefore ? "\n" : "";
+    const suffix = needNewlineAfter ? "\n" : "";
+    const newValue = value.slice(0, start) + prefix + before + selected + after + suffix + value.slice(end);
+    onChange(newValue);
+    setFormatPopover(null);
+    requestAnimationFrame(() => {
+      const newStart = start + prefix.length + before.length;
+      ta.selectionStart = newStart;
+      ta.selectionEnd = newStart + selected.length;
+      ta.focus();
+    });
+  }
+
   // ─── Slash menu handlers ───
 
   function handleSelect(cmd: SlashCommand) {
@@ -2174,6 +2265,7 @@ export function SlashEditor({
     const newValue = e.target.value;
     const pos = e.target.selectionStart;
     onChange(newValue);
+    setFormatPopover(null);
 
     const charBefore = pos >= 2 ? newValue[pos - 2] : "\n";
     const currentChar = newValue[pos - 1];
@@ -2597,6 +2689,8 @@ export function SlashEditor({
                 onKeyDown={handleKeyDown}
                 onPaste={handlePaste}
                 onScroll={syncEditorScroll}
+                onMouseUp={handleSelectionChange}
+                onSelect={handleSelectionChange}
                 placeholder={"Schreibe deinen Inhalt...\nTippe / für Blöcke · Bilder per Drag & Drop oder Strg+V einfügen"}
                 className={`w-full rounded-lg border border-input bg-background px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
                   isFullscreen ? "h-full resize-none" : viewMode === "split" ? "min-h-[500px] max-h-[700px] resize-none" : "min-h-[300px] resize-none"
@@ -2604,6 +2698,120 @@ export function SlashEditor({
                 style={{ lineHeight: "22px" }}
               />
             </div>
+
+            {/* Format Popover */}
+            {formatPopover && !showMenu && (
+              <div
+                ref={formatPopoverRef}
+                className="absolute z-50 flex items-center gap-0.5 px-1.5 py-1 rounded-lg border border-border/60 bg-card shadow-xl"
+                style={{ top: formatPopover.top, left: formatPopover.left, transform: "translateX(-50%)" }}
+                onMouseDown={(e) => e.preventDefault()}
+              >
+                {/* Colors */}
+                {[
+                  { color: "#ea580c", label: "Orange" },
+                  { color: "#2563eb", label: "Blau" },
+                  { color: "#16a34a", label: "Grün" },
+                  { color: "#dc2626", label: "Rot" },
+                  { color: "#7c3aed", label: "Violett" },
+                  { color: "#6b7280", label: "Grau" },
+                ].map((c) => (
+                  <button
+                    key={c.color}
+                    type="button"
+                    title={c.label}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      applyInlineFormat(`<span style="color:${c.color}">`, "</span>");
+                    }}
+                    className="w-5 h-5 rounded-full border border-border/40 hover:scale-125 transition-transform"
+                    style={{ backgroundColor: c.color }}
+                  />
+                ))}
+
+                <div className="w-px h-4 bg-border/60 mx-1" />
+
+                {/* Sizes */}
+                {[
+                  { size: "0.8rem", label: "S", title: "Klein" },
+                  { size: "1.25rem", label: "L", title: "Groß" },
+                  { size: "1.5rem", label: "XL", title: "Extra Groß" },
+                ].map((s) => (
+                  <button
+                    key={s.size}
+                    type="button"
+                    title={s.title}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      applyInlineFormat(`<span style="font-size:${s.size}">`, "</span>");
+                    }}
+                    className="px-1.5 py-0.5 rounded text-[10px] font-bold text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                  >
+                    {s.label}
+                  </button>
+                ))}
+
+                <div className="w-px h-4 bg-border/60 mx-1" />
+
+                {/* Alignment */}
+                {[
+                  { align: "left", icon: "≡", title: "Linksbündig" },
+                  { align: "center", icon: "≡", title: "Zentriert" },
+                  { align: "right", icon: "≡", title: "Rechtsbündig" },
+                ].map((a) => (
+                  <button
+                    key={a.align}
+                    type="button"
+                    title={a.title}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      applyBlockFormat(`<div style="text-align:${a.align}">`, "</div>");
+                    }}
+                    className={`px-1 py-0.5 rounded text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors ${
+                      a.align === "center" ? "tracking-tight" : a.align === "right" ? "tracking-tighter" : ""
+                    }`}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                      {a.align === "left" && <><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="18" y2="18"/></>}
+                      {a.align === "center" && <><line x1="3" y1="6" x2="21" y2="6"/><line x1="6" y1="12" x2="18" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></>}
+                      {a.align === "right" && <><line x1="3" y1="6" x2="21" y2="6"/><line x1="9" y1="12" x2="21" y2="12"/><line x1="6" y1="18" x2="21" y2="18"/></>}
+                    </svg>
+                  </button>
+                ))}
+
+                <div className="w-px h-4 bg-border/60 mx-1" />
+
+                {/* Highlight */}
+                <button
+                  type="button"
+                  title="Hervorheben"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    applyInlineFormat("<mark>", "</mark>");
+                  }}
+                  className="px-1.5 py-0.5 rounded text-[10px] font-bold hover:bg-accent transition-colors"
+                  style={{ backgroundColor: "#fef08a", color: "#854d0e" }}
+                >
+                  H
+                </button>
+
+                {/* Chip / Badge */}
+                <button
+                  type="button"
+                  title="Chip / Badge"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    applyInlineFormat(
+                      '<span style="display:inline-block;padding:2px 10px;border-radius:999px;font-size:0.8rem;font-weight:600;background:#fff7ed;color:#ea580c;border:1px solid #fed7aa">',
+                      "</span>"
+                    );
+                  }}
+                  className="px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-orange-50 text-orange-600 border border-orange-200 hover:bg-orange-100 transition-colors"
+                >
+                  Chip
+                </button>
+              </div>
+            )}
 
             {/* Slash Command Menu */}
             {showMenu && flatFiltered.length > 0 && (
