@@ -928,9 +928,9 @@ export function HtmlPageEditor({
             />
           </div>
         ) : (
-          <div className={`${mode === "split" ? "flex" : ""} ${isFullscreen ? "flex-1 min-h-0" : ""}`}>
+          <div className={`${mode === "split" ? "flex" : "flex flex-col"} ${isFullscreen ? "flex-1 min-h-0 overflow-hidden" : ""}`}>
             <div
-              className={`relative ${mode === "split" ? "w-1/2 border-r border-border/60" : "w-full"} ${isFullscreen ? "flex flex-col" : ""}`}
+              className={`relative ${mode === "split" ? "w-1/2 border-r border-border/60" : "w-full"} ${isFullscreen ? "flex flex-col flex-1 min-h-0" : ""}`}
               onDragOver={handleDragOver}
               onDragEnter={handleDragEnter}
               onDragLeave={handleDragLeave}
@@ -957,10 +957,10 @@ export function HtmlPageEditor({
               />
             </div>
             {mode === "split" && (
-              <div className={`w-1/2 bg-white ${isFullscreen ? "min-h-0" : "min-h-[520px]"}`}>
+              <div className={`w-1/2 bg-white ${isFullscreen ? "min-h-0 flex flex-col" : "min-h-[520px]"}`}>
                 <iframe
                   srcDoc={debouncedSrcDoc}
-                  className={`w-full border-0 ${isFullscreen ? "h-full" : "min-h-[520px]"}`}
+                  className={`w-full border-0 ${isFullscreen ? "flex-1 min-h-0" : "min-h-[520px]"}`}
                   sandbox="allow-scripts"
                   title="HTML-Vorschau"
                 />
