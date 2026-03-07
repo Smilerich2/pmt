@@ -191,6 +191,7 @@ export default async function KategorieSeite({
                           src={post.coverImage}
                           alt={stripAccent(post.title)}
                           className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                          style={post.coverImagePos ? { objectPosition: `${post.coverImagePos.split(" ")[0]}% ${post.coverImagePos.split(" ")[1]}%` } : undefined}
                         />
                       )
                     ) : (

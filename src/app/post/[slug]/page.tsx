@@ -77,6 +77,7 @@ export default async function PostSeite({
               src={post.coverImage}
               alt={post.title}
               className="absolute inset-0 w-full h-full object-cover"
+              style={post.coverImagePos ? { objectPosition: `${post.coverImagePos.split(" ")[0]}% ${post.coverImagePos.split(" ")[1]}%` } : undefined}
             />
           )
         ) : (

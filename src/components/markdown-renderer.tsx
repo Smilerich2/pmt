@@ -22,6 +22,7 @@ type BildConfig = {
   rounded?: boolean;
   shadow?: boolean;
   border?: boolean;
+  focus?: string;
 };
 
 type Block =
@@ -140,6 +141,7 @@ function parseContent(raw: string): Block[] {
           else if (key === "rounded") config.rounded = val.trim() === "true";
           else if (key === "shadow") config.shadow = val.trim() === "true";
           else if (key === "border") config.border = val.trim() === "true";
+          else if (key === "focus") config.focus = val.trim();
         }
         i++;
       }

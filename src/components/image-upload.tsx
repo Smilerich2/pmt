@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ImagePositionPicker } from "./image-position-picker";
 
 type MediaFile = {
   name: string;
@@ -40,9 +41,13 @@ type Tab = "upload" | "media" | "gradient";
 export function ImageUpload({
   value,
   onChange,
+  position,
+  onPositionChange,
 }: {
   value: string;
   onChange: (url: string) => void;
+  position?: string;
+  onPositionChange?: (pos: string) => void;
 }) {
   const [uploading, setUploading] = useState(false);
   const [tab, setTab] = useState<Tab>("upload");
@@ -96,20 +101,30 @@ export function ImageUpload({
   const isGradient = value.startsWith("linear-gradient");
 
   if (value) {
-    return (
-      <div className="relative rounded-lg overflow-hidden border border-border/60">
-        {isGradient ? (
+    if (isGradient) {
+      return (
+        <div className="relative rounded-lg overflow-hidden border border-border/60">
           <div className="w-full h-40" style={{ background: value }} />
+          <Button type="button" variant="destructive" size="sm" className="absolute top-2 right-2" onClick={() => onChange("")}>
+            <X className="w-4 h-4" />
+          </Button>
+        </div>
+      );
+    }
+    return (
+      <div className="relative">
+        {onPositionChange ? (
+          <ImagePositionPicker
+            src={value}
+            position={position || "50 50"}
+            onChange={onPositionChange}
+          />
         ) : (
-          <img src={value} alt="Vorschau" className="w-full h-40 object-cover" />
+          <div className="relative rounded-lg overflow-hidden border border-border/60">
+            <img src={value} alt="Vorschau" className="w-full h-40 object-cover" style={{ objectPosition: position ? `${position.split(" ")[0]}% ${position.split(" ")[1]}%` : undefined }} />
+          </div>
         )}
-        <Button
-          type="button"
-          variant="destructive"
-          size="sm"
-          className="absolute top-2 right-2"
-          onClick={() => onChange("")}
-        >
+        <Button type="button" variant="destructive" size="sm" className="absolute top-2 right-2 z-10" onClick={() => onChange("")}>
           <X className="w-4 h-4" />
         </Button>
       </div>

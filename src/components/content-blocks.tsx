@@ -194,6 +194,7 @@ type BildConfig = {
   rounded?: boolean;
   shadow?: boolean;
   border?: boolean;
+  focus?: string; // "x y" (0-100) focal point for object-position
 };
 
 const sizeMap = {
@@ -238,6 +239,7 @@ export function BildBlock({ config }: { config: BildConfig }) {
         src={config.src}
         alt={config.alt || ""}
         className={imgClasses}
+        style={config.focus ? { objectPosition: `${config.focus.split(" ")[0]}% ${config.focus.split(" ")[1]}%` } : undefined}
       />
       {config.caption && (
         <figcaption className="mt-2 text-center text-sm text-muted-foreground italic">

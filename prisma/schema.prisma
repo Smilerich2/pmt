@@ -36,8 +36,9 @@ model Post {
   categoryId  String
   category    Category @relation(fields: [categoryId], references: [id])
 
-  coverImage  String?
-  type        String   @default("text")
+  coverImage     String?
+  coverImagePos  String?  // "50 50" (x% y%) focal point for object-position
+  type           String   @default("text")
   duration    String?
 
   tags        String?

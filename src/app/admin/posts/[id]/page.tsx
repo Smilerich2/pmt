@@ -35,6 +35,7 @@ export default function EditPostPage() {
   const [categoryId, setCategoryId] = useState("");
   const [content, setContent] = useState("");
   const [coverImage, setCoverImage] = useState("");
+  const [coverImagePos, setCoverImagePos] = useState("");
   const [postType, setPostType] = useState("text");
   const [editorType, setEditorType] = useState("MARKDOWN");
   const [duration, setDuration] = useState("");
@@ -53,6 +54,7 @@ export default function EditPostPage() {
       setCategoryId(post.categoryId ?? "");
       setContent(post.content ?? "");
       setCoverImage(post.coverImage ?? "");
+      setCoverImagePos(post.coverImagePos ?? "");
       setPostType(post.type ?? "text");
       setEditorType(post.editorType === "HTML" ? "HTML" : "MARKDOWN");
       setDuration(post.duration ?? "");
@@ -98,6 +100,7 @@ export default function EditPostPage() {
           editorType,
           categoryId,
           coverImage: coverImage || null,
+          coverImagePos: coverImagePos || null,
           type: postType,
           duration: duration || null,
           tags: tags || null,
@@ -115,7 +118,7 @@ export default function EditPostPage() {
     } finally {
       setSaving(false);
     }
-  }, [id, title, description, content, editorType, categoryId, coverImage, postType, duration, tags, published, saving]);
+  }, [id, title, description, content, editorType, categoryId, coverImage, coverImagePos, postType, duration, tags, published, saving]);
 
   // Quiet save (Cmd+S) — stay on page, show toast
   const handleQuietSave = useCallback(async () => {
@@ -241,7 +244,7 @@ export default function EditPostPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Coverbild</Label>
-                  <ImageUpload value={coverImage} onChange={setCoverImage} />
+                  <ImageUpload value={coverImage} onChange={setCoverImage} position={coverImagePos} onPositionChange={setCoverImagePos} />
                 </div>
                 <div className="space-y-4">
                   <div className="space-y-2">

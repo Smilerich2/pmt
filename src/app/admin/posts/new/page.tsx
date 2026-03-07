@@ -45,6 +45,7 @@ function NewPostContent() {
   const [categoryId, setCategoryId] = useState(preselectedCategory || "");
   const [content, setContent] = useState("");
   const [coverImage, setCoverImage] = useState("");
+  const [coverImagePos, setCoverImagePos] = useState("");
   const [postType, setPostType] = useState("text");
   const [editorType, setEditorType] = useState("MARKDOWN");
   const [duration, setDuration] = useState("");
@@ -141,6 +142,7 @@ function NewPostContent() {
           editorType,
           categoryId,
           coverImage: coverImage || null,
+          coverImagePos: coverImagePos || null,
           type: postType,
           duration: duration || null,
           tags: tags || null,
@@ -300,7 +302,7 @@ function NewPostContent() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Coverbild</Label>
-                  <ImageUpload value={coverImage} onChange={setCoverImage} />
+                  <ImageUpload value={coverImage} onChange={setCoverImage} position={coverImagePos} onPositionChange={setCoverImagePos} />
                 </div>
                 <div className="space-y-4">
                   <div className="space-y-2">

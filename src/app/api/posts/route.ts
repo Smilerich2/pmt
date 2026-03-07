@@ -63,6 +63,7 @@ export async function POST(request: NextRequest) {
       editorType: body.editorType || "MARKDOWN",
       categoryId: body.categoryId,
       coverImage: body.coverImage || null,
+      coverImagePos: body.coverImagePos || null,
       type: body.type || "text",
       duration: body.duration || null,
       tags: body.tags || null,

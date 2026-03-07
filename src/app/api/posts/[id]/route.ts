@@ -33,6 +33,7 @@ export async function PUT(
   if ("editorType" in body) data.editorType = body.editorType || "MARKDOWN";
   if ("categoryId" in body) data.categoryId = body.categoryId;
   if ("coverImage" in body) data.coverImage = body.coverImage || null;
+  if ("coverImagePos" in body) data.coverImagePos = body.coverImagePos || null;
   if ("type" in body) data.type = body.type || "text";
   if ("duration" in body) data.duration = body.duration || null;
   if ("tags" in body) data.tags = body.tags || null;
