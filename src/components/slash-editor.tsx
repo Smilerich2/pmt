@@ -3485,58 +3485,70 @@ export function SlashEditor({
             {showMenu && flatFiltered.length > 0 && (
               <div
                 ref={menuRef}
-                className="absolute z-50 w-72 max-h-80 overflow-y-auto rounded-xl border border-border/60 bg-card shadow-xl"
-                style={{ top: menuPosition?.top ?? 0, left: menuPosition?.left ?? 16 }}
+                className="absolute z-50 w-72 rounded-xl border border-border/60 bg-card shadow-xl overflow-hidden flex flex-col"
+                style={{ top: menuPosition?.top ?? 0, left: menuPosition?.left ?? 16, maxHeight: "min(360px, 50vh)" }}
               >
-                <div className="p-2 border-b border-border/40">
-                  <p className="text-xs text-muted-foreground px-2 py-1">
-                    Blöcke einfügen
-                    {filter && (
-                      <span className="ml-1 text-primary">
-                        — &quot;{filter}&quot;
-                      </span>
+                <div className="px-3 py-2 border-b border-border/40 shrink-0">
+                  <p className="text-xs text-muted-foreground">
+                    {filter ? (
+                      <>Suche: <span className="text-primary font-medium">{filter}</span> <span className="text-muted-foreground/60">({flatFiltered.length})</span></>
+                    ) : (
+                      "Bloecke einfuegen"
                     )}
                   </p>
                 </div>
-                <div className="p-1">
-                  {Object.entries(grouped).map(([category, cmds]) => (
-                    <div key={category}>
-                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-3 pt-2 pb-1">
-                        {category}
-                      </p>
-                      {cmds.map((cmd) => {
-                        const globalIndex = flatFiltered.indexOf(cmd);
-                        return (
-                          <button
-                            key={cmd.id}
-                            onMouseDown={(e) => {
-                              e.preventDefault();
-                              handleSelect(cmd);
-                            }}
-                            onMouseEnter={() => setSelectedIndex(globalIndex)}
-                            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
-                              globalIndex === selectedIndex
-                                ? "bg-accent text-foreground"
-                                : "text-foreground/80 hover:bg-accent/50"
-                            }`}
-                          >
-                            <div className="w-8 h-8 rounded-lg bg-background border border-border/40 flex items-center justify-center shrink-0">
-                              <cmd.icon className="w-4 h-4 text-primary" />
-                            </div>
-                            <div className="min-w-0">
-                              <p className="text-sm font-medium truncate">
-                                {cmd.label}
-                              </p>
-                              <p className="text-xs text-muted-foreground truncate">
-                                {cmd.description}
-                              </p>
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  ))}
+                <div className="overflow-y-auto overscroll-contain flex-1 p-1" style={{ scrollbarGutter: "stable" }}>
+                  {(() => {
+                    let idx = 0;
+                    return Object.entries(grouped).map(([category, cmds]) => (
+                      <div key={category}>
+                        <p className="text-[10px] font-semibold text-muted-foreground/70 uppercase tracking-wider px-2.5 pt-2.5 pb-1">
+                          {category}
+                        </p>
+                        {cmds.map((cmd) => {
+                          const globalIndex = idx++;
+                          return (
+                            <button
+                              key={cmd.id}
+                              ref={globalIndex === selectedIndex ? (el) => { el?.scrollIntoView({ block: "nearest" }); } : undefined}
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                handleSelect(cmd);
+                              }}
+                              onMouseEnter={() => setSelectedIndex(globalIndex)}
+                              className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-left transition-colors ${
+                                globalIndex === selectedIndex
+                                  ? "bg-primary/10 text-foreground"
+                                  : "text-foreground/80 hover:bg-accent/50"
+                              }`}
+                            >
+                              <div className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 ${
+                                globalIndex === selectedIndex ? "bg-primary/15 text-primary" : "bg-accent/70 text-muted-foreground"
+                              }`}>
+                                <cmd.icon className="w-3.5 h-3.5" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <span className="text-[13px] font-medium">{cmd.label}</span>
+                                <span className="text-[11px] text-muted-foreground ml-1.5 hidden sm:inline">{cmd.description}</span>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ));
+                  })()}
                 </div>
+                {!filter && (
+                  <div className="px-3 py-1.5 border-t border-border/40 shrink-0">
+                    <p className="text-[10px] text-muted-foreground/60">
+                      <kbd className="px-1 py-0.5 rounded bg-accent/70 font-mono text-[9px]">↑↓</kbd> navigieren
+                      <span className="mx-1.5">·</span>
+                      <kbd className="px-1 py-0.5 rounded bg-accent/70 font-mono text-[9px]">↵</kbd> einfuegen
+                      <span className="mx-1.5">·</span>
+                      <kbd className="px-1 py-0.5 rounded bg-accent/70 font-mono text-[9px]">esc</kbd> schliessen
+                    </p>
+                  </div>
+                )}
               </div>
             )}
           </div>
