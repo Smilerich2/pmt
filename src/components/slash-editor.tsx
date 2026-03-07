@@ -408,11 +408,13 @@ const ratioOptions = [
 function ImageModal({
   onInsert,
   onClose,
+  initialUrl,
 }: {
   onInsert: (md: string) => void;
   onClose: () => void;
+  initialUrl?: string;
 }) {
-  const [url, setUrl] = useState("");
+  const [url, setUrl] = useState(initialUrl || "");
   const [alt, setAlt] = useState("");
   const [caption, setCaption] = useState("");
   const [size, setSize] = useState("full");
@@ -821,9 +823,11 @@ function AudioModal({
 function MediaLibraryModal({
   onInsert,
   onClose,
+  onInsertWithOptions,
 }: {
   onInsert: (md: string) => void;
   onClose: () => void;
+  onInsertWithOptions?: (url: string) => void;
 }) {
   const [files, setFiles] = useState<MediaFile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -955,22 +959,35 @@ function MediaLibraryModal({
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end gap-2 p-4 border-t border-border/40">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            Abbrechen
-          </button>
-          <button
-            type="button"
-            onClick={handleInsert}
-            disabled={!selected}
-            className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-40"
-          >
-            Einfügen
-          </button>
+        <div className="flex items-center justify-between gap-2 p-4 border-t border-border/40">
+          <div>
+            {onInsertWithOptions && selected && files.find((f) => f.url === selected)?.type !== "video" && (
+              <button
+                type="button"
+                onClick={() => onInsertWithOptions(selected)}
+                className="px-4 py-2 rounded-lg text-sm font-medium text-primary border border-primary/30 hover:bg-primary/10 transition-colors"
+              >
+                Mit Optionen einfügen
+              </button>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Abbrechen
+            </button>
+            <button
+              type="button"
+              onClick={handleInsert}
+              disabled={!selected}
+              className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-40"
+            >
+              Einfügen
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -1825,6 +1842,7 @@ export function SlashEditor({
   const [slashPos, setSlashPos] = useState<number | null>(null);
   const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
   const [modal, setModal] = useState<string | null>(null);
+  const [imageModalUrl, setImageModalUrl] = useState<string | undefined>(undefined);
   const [isDragging, setIsDragging] = useState(false);
   const [uploadingInline, setUploadingInline] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
@@ -3009,7 +3027,11 @@ export function SlashEditor({
         <TableModal onInsert={handleModalInsert} onClose={() => setModal(null)} />
       )}
       {modal === "image" && (
-        <ImageModal onInsert={handleModalInsert} onClose={() => setModal(null)} />
+        <ImageModal
+          onInsert={(md) => { setImageModalUrl(undefined); handleModalInsert(md); }}
+          onClose={() => { setImageModalUrl(undefined); setModal(null); }}
+          initialUrl={imageModalUrl}
+        />
       )}
       {modal === "video" && (
         <VideoModal onInsert={handleModalInsert} onClose={() => setModal(null)} />
@@ -3018,7 +3040,14 @@ export function SlashEditor({
         <AudioModal onInsert={handleModalInsert} onClose={() => setModal(null)} />
       )}
       {modal === "media" && (
-        <MediaLibraryModal onInsert={handleModalInsert} onClose={() => setModal(null)} />
+        <MediaLibraryModal
+          onInsert={handleModalInsert}
+          onClose={() => setModal(null)}
+          onInsertWithOptions={(url) => {
+            setImageModalUrl(url);
+            setModal("image");
+          }}
+        />
       )}
       {modal === "demo" && (
         <DemoModal onInsert={handleModalInsert} onClose={() => setModal(null)} />
