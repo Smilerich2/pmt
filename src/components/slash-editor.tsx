@@ -2156,10 +2156,14 @@ export function SlashEditor({
     document.body.appendChild(mirror);
 
     const top = span.offsetTop - ta.scrollTop - 44;
-    const left = Math.min(span.offsetLeft + span.offsetWidth / 2, ta.clientWidth - 160);
+    // Center on selection, but clamp so the popover (~420px wide) stays in bounds
+    const popoverWidth = 420;
+    const centerX = span.offsetLeft + span.offsetWidth / 2;
+    const halfWidth = popoverWidth / 2;
+    const left = Math.max(halfWidth + 4, Math.min(centerX, ta.clientWidth - halfWidth - 4));
 
     document.body.removeChild(mirror);
-    return { top: Math.max(-44, top), left: Math.max(12, left) };
+    return { top: Math.max(-44, top), left };
   }
 
   function handleSelectionChange() {
