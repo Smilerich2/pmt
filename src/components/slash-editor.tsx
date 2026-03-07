@@ -41,6 +41,7 @@ import {
   Music,
   Maximize2,
   Minimize2,
+  ImagePlus,
   Columns2,
   ArrowUpDown,
   CopyPlus,
@@ -462,7 +463,7 @@ function ImageModal({
       >
         <div className="flex items-center justify-between p-4 border-b border-border/40">
           <h3 className="font-semibold text-foreground">Bild einfügen & konfigurieren</h3>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
+          <button type="button" onClick={onClose} className="text-muted-foreground hover:text-foreground">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -634,12 +635,14 @@ function ImageModal({
         {/* Footer */}
         <div className="flex justify-end gap-2 p-4 border-t border-border/40">
           <button
+            type="button"
             onClick={onClose}
             className="px-4 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             Abbrechen
           </button>
           <button
+            type="button"
             onClick={() => onInsert(generateBlock())}
             disabled={!url}
             className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-40"
@@ -872,6 +875,7 @@ function MediaLibraryModal({
           <h3 className="font-semibold text-foreground">Medienbibliothek</h3>
           <div className="flex items-center gap-2">
             <button
+              type="button"
               onClick={() => fileRef.current?.click()}
               className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
             >
@@ -882,7 +886,7 @@ function MediaLibraryModal({
               )}
               Hochladen
             </button>
-            <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
+            <button type="button" onClick={onClose} className="text-muted-foreground hover:text-foreground">
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -904,8 +908,17 @@ function MediaLibraryModal({
             <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
               {files.map((file) => (
                 <button
+                  type="button"
                   key={file.url}
                   onClick={() => setSelected(file.url === selected ? null : file.url)}
+                  onDoubleClick={() => {
+                    const f = files.find((mf) => mf.url === file.url);
+                    if (f?.type === "video") {
+                      onInsert(`<video src="${file.url}" controls class="rounded-lg w-full"></video>\n`);
+                    } else {
+                      onInsert(`![](${file.url})\n`);
+                    }
+                  }}
                   className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all ${
                     selected === file.url
                       ? "border-primary shadow-md"
@@ -944,12 +957,14 @@ function MediaLibraryModal({
         {/* Footer */}
         <div className="flex justify-end gap-2 p-4 border-t border-border/40">
           <button
+            type="button"
             onClick={onClose}
             className="px-4 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             Abbrechen
           </button>
           <button
+            type="button"
             onClick={handleInsert}
             disabled={!selected}
             className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-40"
@@ -1016,7 +1031,7 @@ function HtmlDemoModal({
               Wird als isolierter iframe eingebettet – kein React, reines HTML/CSS/JS.
             </p>
           </div>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
+          <button type="button" onClick={onClose} className="text-muted-foreground hover:text-foreground">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -1098,12 +1113,14 @@ function HtmlDemoModal({
         {/* Footer */}
         <div className="flex justify-end gap-2 p-4 border-t border-border/40 shrink-0">
           <button
+            type="button"
             onClick={onClose}
             className="px-4 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             Abbrechen
           </button>
           <button
+            type="button"
             onClick={() => onInsert(generateBlock())}
             className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
           >
@@ -1375,12 +1392,14 @@ function ModalFooter({
   return (
     <div className="flex justify-end gap-2">
       <button
+        type="button"
         onClick={onClose}
         className="px-4 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground transition-colors"
       >
         Abbrechen
       </button>
       <button
+        type="button"
         onClick={onConfirm}
         disabled={disabled}
         className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-40"
@@ -1674,6 +1693,7 @@ function BlockHelpOverlay({ onClose }: { onClose: () => void }) {
           </div>
           <div className="flex items-center gap-2">
             <button
+              type="button"
               onClick={copyPrompt}
               className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-accent text-sm font-medium text-foreground hover:bg-accent/80 transition-colors"
               title="KI-Prompt in die Zwischenablage kopieren"
@@ -1690,7 +1710,7 @@ function BlockHelpOverlay({ onClose }: { onClose: () => void }) {
                 </>
               )}
             </button>
-            <button onClick={onClose} className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
+            <button type="button" onClick={onClose} className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -1729,6 +1749,7 @@ function BlockHelpOverlay({ onClose }: { onClose: () => void }) {
                     {block.syntax}
                   </pre>
                   <button
+                    type="button"
                     onClick={() => copyBlockSyntax(block.syntax, block.name)}
                     className="absolute top-2 right-2 p-1.5 rounded-md bg-card border border-border/40 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity"
                     title="Syntax kopieren"
@@ -1812,6 +1833,8 @@ export function SlashEditor({
   // "edit" = nur Editor, "split" = Editor + Vorschau, "preview" = nur Vorschau
   const [viewMode, setViewMode] = useState<"edit" | "split" | "preview">("edit");
   const previewRef = useRef<HTMLDivElement>(null);
+  const quickUploadRef = useRef<HTMLInputElement>(null);
+  const [quickUploading, setQuickUploading] = useState(false);
   const [debouncedContent, setDebouncedContent] = useState(value);
   const scrollSyncSource = useRef<"editor" | "preview" | null>(null);
 
@@ -2001,6 +2024,20 @@ export function SlashEditor({
         return;
       }
     }
+  }
+
+  // ─── Quick Upload (direct file picker, no modal) ───
+
+  async function handleQuickUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setQuickUploading(true);
+    const url = await uploadFile(file);
+    setQuickUploading(false);
+    if (url) {
+      insertText(`![${file.name}](${url})\n`);
+    }
+    e.target.value = "";
   }
 
   // ─── Slash menu handlers ───
@@ -2368,6 +2405,23 @@ export function SlashEditor({
       <div className={`flex items-center gap-1 p-1 rounded-lg border border-border/40 transition-colors ${isFocusMode ? "bg-transparent border-transparent" : "bg-accent/50"}`}>
         {viewMode !== "preview" && !isFocusMode && (
           <>
+            <button
+              type="button"
+              onClick={() => quickUploadRef.current?.click()}
+              disabled={quickUploading}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors disabled:opacity-60"
+              title="Bild direkt hochladen und einfügen"
+            >
+              {quickUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImagePlus className="w-4 h-4" />}
+              <span className="hidden sm:inline">Upload</span>
+            </button>
+            <input
+              ref={quickUploadRef}
+              type="file"
+              accept="image/*"
+              onChange={handleQuickUpload}
+              className="hidden"
+            />
             <ToolbarButton
               icon={Image}
               label="Bild"
