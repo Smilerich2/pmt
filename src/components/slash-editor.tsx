@@ -2720,6 +2720,12 @@ export function SlashEditor({
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     const mod = e.metaKey || e.ctrlKey;
+    const ta = e.currentTarget;
+    const start = ta.selectionStart;
+    const end = ta.selectionEnd;
+    const hasSelection = start !== end;
+
+    // ─── Undo / Redo ───
     if (mod && e.key === "z" && !e.shiftKey) {
       e.preventDefault();
       undo();
@@ -2730,6 +2736,8 @@ export function SlashEditor({
       redo();
       return;
     }
+
+    // ─── Format Shortcuts ───
     if (mod && e.key === "b") {
       e.preventDefault();
       wrapSelection("**", "**", "fetter Text");
@@ -2743,6 +2751,21 @@ export function SlashEditor({
     if (mod && e.key === "k") {
       e.preventDefault();
       wrapLinkSelection();
+      return;
+    }
+    if (mod && e.shiftKey && e.key === "x") {
+      e.preventDefault();
+      wrapSelection("~~", "~~", "durchgestrichen");
+      return;
+    }
+    if (mod && e.key === "e") {
+      e.preventDefault();
+      wrapSelection("`", "`", "code");
+      return;
+    }
+    if (mod && e.shiftKey && e.key === "e") {
+      e.preventDefault();
+      wrapSelection("```\n", "\n```", "code");
       return;
     }
     if (mod && e.key === "d") {
@@ -2761,31 +2784,131 @@ export function SlashEditor({
       return;
     }
 
-    if (e.key === "Tab") {
+    // ─── Auto-Pairing: wrap selection with typed character ───
+    const pairMap: Record<string, [string, string]> = {
+      "(": ["(", ")"],
+      "[": ["[", "]"],
+      "{": ["{", "}"],
+      '"': ['"', '"'],
+      "'": ["'", "'"],
+      "*": ["*", "*"],
+      "~": ["~", "~"],
+      "`": ["`", "`"],
+      "_": ["_", "_"],
+    };
+    if (hasSelection && pairMap[e.key] && !mod) {
       e.preventDefault();
-      const start = e.currentTarget.selectionStart;
-      const end = e.currentTarget.selectionEnd;
-      if (e.shiftKey) {
-        const lineStart = value.lastIndexOf("\n", start - 1) + 1;
-        if (value.slice(lineStart, lineStart + 2) === "  ") {
-          const newVal = value.slice(0, lineStart) + value.slice(lineStart + 2);
+      const [open, close] = pairMap[e.key];
+      const selected = value.slice(start, end);
+      const newVal = value.slice(0, start) + open + selected + close + value.slice(end);
+      pushHistory(newVal, true);
+      onChange(newVal);
+      requestAnimationFrame(() => {
+        ta.selectionStart = start + open.length;
+        ta.selectionEnd = end + open.length;
+        ta.focus();
+      });
+      return;
+    }
+
+    // ─── Smart Enter: list continuation ───
+    if (e.key === "Enter" && !showMenu && !mod && !e.shiftKey) {
+      const lineStart = value.lastIndexOf("\n", start - 1) + 1;
+      const currentLine = value.slice(lineStart, start);
+
+      // Match unordered list: "  - " or "- " (with any indent)
+      const ulMatch = currentLine.match(/^(\s*)([-*+])\s/);
+      // Match ordered list: "  1. " or "1. " (with any indent)
+      const olMatch = currentLine.match(/^(\s*)(\d+)\.\s/);
+      // Match checkbox: "  - [ ] " or "  - [x] "
+      const cbMatch = currentLine.match(/^(\s*)([-*+])\s\[[ x]\]\s/);
+
+      const listMatch = cbMatch || ulMatch || olMatch;
+
+      if (listMatch) {
+        const indent = listMatch[1];
+        const contentAfterMarker = cbMatch
+          ? currentLine.slice(cbMatch[0].length)
+          : ulMatch
+            ? currentLine.slice(ulMatch[0].length)
+            : currentLine.slice(olMatch![0].length);
+
+        // Empty list item → remove it and exit list
+        if (!contentAfterMarker.trim()) {
+          e.preventDefault();
+          const newVal = value.slice(0, lineStart) + "\n" + value.slice(end);
+          pushHistory(newVal, true);
           onChange(newVal);
           requestAnimationFrame(() => {
-            const ta = textareaRef.current;
-            if (ta) { ta.selectionStart = Math.max(start - 2, lineStart); ta.selectionEnd = Math.max(end - 2, lineStart); }
+            ta.selectionStart = ta.selectionEnd = lineStart + 1;
+            ta.focus();
           });
+          return;
         }
-      } else {
-        const newVal = value.slice(0, start) + "  " + value.slice(end);
+
+        // Continue the list
+        e.preventDefault();
+        let nextMarker: string;
+        if (cbMatch) {
+          nextMarker = `${indent}${cbMatch[2]} [ ] `;
+        } else if (olMatch) {
+          const nextNum = parseInt(olMatch[2], 10) + 1;
+          nextMarker = `${indent}${nextNum}. `;
+        } else {
+          nextMarker = `${indent}${ulMatch![2]} `;
+        }
+        const insert = "\n" + nextMarker;
+        const newVal = value.slice(0, start) + insert + value.slice(end);
+        pushHistory(newVal, true);
         onChange(newVal);
         requestAnimationFrame(() => {
-          const ta = textareaRef.current;
-          if (ta) { ta.selectionStart = ta.selectionEnd = start + 2; }
+          ta.selectionStart = ta.selectionEnd = start + insert.length;
+          ta.focus();
+        });
+        return;
+      }
+    }
+
+    // ─── Tab: indent/outdent in lists ───
+    if (e.key === "Tab") {
+      e.preventDefault();
+      const lineStart = value.lastIndexOf("\n", start - 1) + 1;
+      const currentLine = value.slice(lineStart, value.indexOf("\n", start) === -1 ? undefined : value.indexOf("\n", start));
+      const isList = /^\s*[-*+]\s|^\s*\d+\.\s/.test(currentLine);
+
+      if (e.shiftKey) {
+        // Outdent: remove up to 2 spaces from line start
+        if (value.slice(lineStart, lineStart + 2) === "  ") {
+          const newVal = value.slice(0, lineStart) + value.slice(lineStart + 2);
+          pushHistory(newVal, true);
+          onChange(newVal);
+          requestAnimationFrame(() => {
+            ta.selectionStart = Math.max(start - 2, lineStart);
+            ta.selectionEnd = Math.max(end - 2, lineStart);
+          });
+        }
+      } else if (isList) {
+        // Indent list item
+        const newVal = value.slice(0, lineStart) + "  " + value.slice(lineStart);
+        pushHistory(newVal, true);
+        onChange(newVal);
+        requestAnimationFrame(() => {
+          ta.selectionStart = start + 2;
+          ta.selectionEnd = end + 2;
+        });
+      } else {
+        // Regular tab: insert 2 spaces
+        const newVal = value.slice(0, start) + "  " + value.slice(end);
+        pushHistory(newVal, true);
+        onChange(newVal);
+        requestAnimationFrame(() => {
+          ta.selectionStart = ta.selectionEnd = start + 2;
         });
       }
       return;
     }
 
+    // ─── Slash command menu navigation ───
     if (!showMenu) return;
     if (e.key === "ArrowDown") {
       e.preventDefault();
