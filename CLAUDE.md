@@ -19,12 +19,12 @@ npx prisma generate  # Regenerate Prisma client after schema changes
 Production server: `root@46.224.44.62` (Ubuntu 24.04, Caddy, Docker)
 Domain: `pmt.frispersonalpage.de`
 
-Manual deploy (until GitHub Actions SSH is fixed):
+Manual deploy:
 ```bash
-ssh root@46.224.44.62 'cd /var/www/pmt && git pull origin main && docker compose up --build -d && docker image prune -f'
+ssh root@46.224.44.62 'cd /var/www/pmt && git pull origin main && docker compose up --build -d && docker image prune -f && docker builder prune -f --keep-storage=512MB'
 ```
 
-GitHub Actions auto-deploy is configured (`.github/workflows/deploy.yml`) but requires `SSH_PRIVATE_KEY`, `SERVER_HOST`, `SERVER_USER` secrets to be set correctly in the repo settings.
+GitHub Actions auto-deploy is configured (`.github/workflows/deploy.yml`) and runs on push to `main`. It prunes dangling images and build cache (keeps 512MB) after each deploy to prevent disk bloat. Requires `SSH_PRIVATE_KEY`, `SERVER_HOST`, `SERVER_USER` secrets in the repo settings.
 
 ## Environment Variables
 
@@ -96,7 +96,7 @@ When `type === "webpage"`, `editorType` is automatically set to `"HTML"`. The po
 ### HTML/Webpage Posts (`editorType = "HTML"`)
 Full HTML/CSS/JS pages stored as raw HTML in `post.content`. Rendered via:
 - `src/components/html-post-viewer.tsx` — client component, auto-resizes iframe via `ResizeObserver` + `postMessage`, delays render until mounted (avoids hydration mismatch)
-- `src/components/html-page-editor.tsx` — admin editor with code textarea, live preview, starter template button, media picker (upload + library), and KI-Prompt button
+- `src/components/html-page-editor.tsx` — admin editor with three view modes (code / split / preview), fullscreen mode, drag & drop image upload, paste upload (Cmd+V), quick upload button, media picker (upload + library), starter template, and KI-Prompt button
 
 `buildSrcDoc(html)` in `html-page-editor.tsx`:
 - Injects `<base href="origin/">` so `/uploads/` paths resolve correctly in the sandboxed iframe
@@ -165,7 +165,7 @@ All server components that query Prisma **must** include `export const dynamic =
 - `src/components/content-blocks.tsx` — `Callout`, `Accordion`, `Quiz`, `BildBlock`, `DemoBlock`, `HtmlDemoBlock` + math-rendering helpers (`BlockContent` uses `rehype-raw` for HTML support)
 - `src/components/markdown-renderer.tsx` — parses custom syntax → renders blocks
 - `src/components/slash-editor.tsx` — admin post editor (Markdown)
-- `src/components/html-page-editor.tsx` — admin post editor (HTML/CSS/JS), exports `buildSrcDoc()`
+- `src/components/html-page-editor.tsx` — admin post editor (HTML/CSS/JS), exports `buildSrcDoc()`. Features: three view modes (code/split/preview), fullscreen, drag & drop upload, paste upload, quick upload button, cursor position preservation across modals
 - `src/components/html-post-viewer.tsx` — public viewer for HTML posts (client component)
 - `src/components/site-header.tsx` — global navigation header
 - `src/components/scroll-to-top.tsx` — floating scroll-to-top button
