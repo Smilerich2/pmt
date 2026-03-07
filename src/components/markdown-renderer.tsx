@@ -74,6 +74,36 @@ function CopyableCodeBlock({ children, className }: { children: React.ReactNode;
   );
 }
 
+function isBlockOpener(line: string): boolean {
+  const trimmed = line.trim();
+  return /^:::(merke|tipp|warnung|info|bild\[|demo\[|htmldemo|spalten|tabs|karten)/.test(trimmed);
+}
+
+// Collect lines for a ::: block, respecting nested ::: blocks
+function collectNestedLines(lines: string[], startIndex: number): { content: string[]; endIndex: number } {
+  const collected: string[] = [];
+  let depth = 0;
+  let j = startIndex;
+  while (j < lines.length) {
+    const trimmed = lines[j].trim();
+    if (isBlockOpener(trimmed)) {
+      depth++;
+      collected.push(lines[j]);
+    } else if (trimmed === ":::") {
+      if (depth === 0) {
+        return { content: collected, endIndex: j };
+      }
+      depth--;
+      collected.push(lines[j]);
+    } else {
+      collected.push(lines[j]);
+    }
+    j++;
+  }
+  // No closing ::: found — return everything
+  return { content: collected, endIndex: j };
+}
+
 function parseContent(raw: string): Block[] {
   const blocks: Block[] = [];
   const lines = raw.split("\n");
@@ -186,43 +216,54 @@ function parseContent(raw: string): Block[] {
     // ─── Spalten: :::spalten ───
     if (line.trim() === ":::spalten") {
       flushMarkdown();
+      i++;
+      const { content: innerLines, endIndex } = collectNestedLines(lines, i);
       const columns: string[] = [];
       let currentCol: string[] = [];
-      i++;
-      while (i < lines.length && lines[i].trim() !== ":::") {
-        if (lines[i].trim().match(/^---(links|mitte|rechts)$/)) {
+      let depth = 0;
+      for (const innerLine of innerLines) {
+        const trimmed = innerLine.trim();
+        if (isBlockOpener(trimmed)) depth++;
+        else if (trimmed === ":::") depth--;
+
+        if (depth === 0 && innerLine.trim().match(/^---(links|mitte|rechts)$/)) {
           if (currentCol.length > 0) columns.push(currentCol.join("\n").trim());
           currentCol = [];
         } else {
-          currentCol.push(lines[i]);
+          currentCol.push(innerLine);
         }
-        i++;
       }
       if (currentCol.length > 0) columns.push(currentCol.join("\n").trim());
       blocks.push({ type: "spalten", columns });
-      i++; // skip closing :::
+      i = endIndex + 1;
       continue;
     }
 
     // ─── Tabs: :::tabs ───
     if (line.trim() === ":::tabs") {
       flushMarkdown();
+      i++;
+      const { content: innerLines, endIndex } = collectNestedLines(lines, i);
       const tabs: { title: string; icon?: string; content: string }[] = [];
       let currentTab: { title: string; icon?: string; lines: string[] } | null = null;
-      i++;
-      while (i < lines.length && lines[i].trim() !== ":::") {
-        const tabMatch = lines[i].match(/^---(.+?)(?:\|(.+?))?$/);
+      let depth = 0;
+      for (const innerLine of innerLines) {
+        const trimmed = innerLine.trim();
+        if (isBlockOpener(trimmed)) depth++;
+        else if (trimmed === ":::") depth--;
+
+        // Only split on --- at top level (not inside nested blocks)
+        const tabMatch = depth === 0 && innerLine.match(/^---(.+?)(?:\|(.+?))?$/);
         if (tabMatch) {
           if (currentTab) tabs.push({ title: currentTab.title, icon: currentTab.icon, content: currentTab.lines.join("\n").trim() });
           currentTab = { title: tabMatch[1].trim(), icon: tabMatch[2]?.trim(), lines: [] };
         } else if (currentTab) {
-          currentTab.lines.push(lines[i]);
+          currentTab.lines.push(innerLine);
         }
-        i++;
       }
       if (currentTab) tabs.push({ title: currentTab.title, icon: currentTab.icon, content: currentTab.lines.join("\n").trim() });
       blocks.push({ type: "tabs", tabs });
-      i++; // skip closing :::
+      i = endIndex + 1;
       continue;
     }
 
@@ -231,22 +272,27 @@ function parseContent(raw: string): Block[] {
     if (kartenMatch) {
       flushMarkdown();
       const columns = kartenMatch[1] ? parseInt(kartenMatch[1], 10) : undefined;
+      i++;
+      const { content: innerLines, endIndex } = collectNestedLines(lines, i);
       const cards: { title: string; badge?: string; badgeColor?: string; content: string }[] = [];
       let currentCard: { title: string; badge?: string; badgeColor?: string; lines: string[] } | null = null;
-      i++;
-      while (i < lines.length && lines[i].trim() !== ":::") {
-        const cardMatch = lines[i].match(/^---(.+?)(?:\|(.+?))?(?:\|(.+?))?$/);
+      let depth = 0;
+      for (const innerLine of innerLines) {
+        const trimmed = innerLine.trim();
+        if (isBlockOpener(trimmed)) depth++;
+        else if (trimmed === ":::") depth--;
+
+        const cardMatch = depth === 0 && innerLine.match(/^---(.+?)(?:\|(.+?))?(?:\|(.+?))?$/);
         if (cardMatch) {
           if (currentCard) cards.push({ title: currentCard.title, badge: currentCard.badge, badgeColor: currentCard.badgeColor, content: currentCard.lines.join("\n").trim() });
           currentCard = { title: cardMatch[1].trim(), badge: cardMatch[2]?.trim(), badgeColor: cardMatch[3]?.trim(), lines: [] };
         } else if (currentCard) {
-          currentCard.lines.push(lines[i]);
+          currentCard.lines.push(innerLine);
         }
-        i++;
       }
       if (currentCard) cards.push({ title: currentCard.title, badge: currentCard.badge, badgeColor: currentCard.badgeColor, content: currentCard.lines.join("\n").trim() });
       blocks.push({ type: "karten", cards, columns });
-      i++; // skip closing :::
+      i = endIndex + 1;
       continue;
     }
 
@@ -255,18 +301,14 @@ function parseContent(raw: string): Block[] {
     if (calloutMatch) {
       flushMarkdown();
       const variant = calloutMatch[1];
-      const contentLines: string[] = [];
       i++;
-      while (i < lines.length && lines[i].trim() !== ":::") {
-        contentLines.push(lines[i]);
-        i++;
-      }
+      const { content: innerLines, endIndex } = collectNestedLines(lines, i);
       blocks.push({
         type: "callout",
         variant,
-        content: contentLines.join("\n").trim(),
+        content: innerLines.join("\n").trim(),
       });
-      i++; // skip closing :::
+      i = endIndex + 1;
       continue;
     }
 
