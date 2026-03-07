@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import {
   Copy,
   CheckCheck,
@@ -14,6 +14,8 @@ import {
   Loader2,
   X,
   Check,
+  Columns2,
+  ImagePlus,
 } from "lucide-react";
 
 // ─── Typen ───
@@ -634,26 +636,51 @@ export function HtmlPageEditor({
   value: string;
   onChange: (v: string) => void;
 }) {
-  const [mode, setMode] = useState<"edit" | "preview">("edit");
+  const [mode, setMode] = useState<"edit" | "split" | "preview">("edit");
   const [copied, setCopied] = useState(false);
   const [templateLabel, setTemplateLabel] = useState("Template");
   const [showMedia, setShowMedia] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [quickUploading, setQuickUploading] = useState(false);
+  const [debouncedSrcDoc, setDebouncedSrcDoc] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const cursorPosRef = useRef<{ start: number; end: number }>({ start: 0, end: 0 });
+  const quickUploadRef = useRef<HTMLInputElement>(null);
+  const dragCounterRef = useRef(0);
+  const valueRef = useRef(value);
+  valueRef.current = value;
 
-  // Fügt Text an der aktuellen Cursor-Position in die Textarea ein
+  // Debounced srcDoc für Split-Vorschau
+  useEffect(() => {
+    if (mode !== "split") return;
+    const timer = setTimeout(() => {
+      setDebouncedSrcDoc(buildSrcDoc(value || "<p style='color:#94a3b8'>Noch kein Inhalt.</p>"));
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [value, mode]);
+
+  // Cursor-Position speichern (wird vor Modal-Öffnung und von Event-Handlern aufgerufen)
+  const saveCursorPos = useCallback(() => {
+    const ta = textareaRef.current;
+    if (ta) {
+      cursorPosRef.current = { start: ta.selectionStart, end: ta.selectionEnd };
+    }
+  }, []);
+
+  // Fügt Text an der gespeicherten Cursor-Position in die Textarea ein
   function insertAtCursor(text: string) {
     const ta = textareaRef.current;
     if (!ta) {
       onChange(value + text);
       return;
     }
-    const start = ta.selectionStart;
-    const end = ta.selectionEnd;
+    const { start, end } = cursorPosRef.current;
     const newValue = value.slice(0, start) + text + value.slice(end);
     onChange(newValue);
-    // Cursor nach dem eingefügten Text setzen
+    const newPos = start + text.length;
+    cursorPosRef.current = { start: newPos, end: newPos };
     requestAnimationFrame(() => {
-      ta.selectionStart = ta.selectionEnd = start + text.length;
+      ta.selectionStart = ta.selectionEnd = newPos;
       ta.focus();
     });
   }
@@ -675,9 +702,80 @@ export function HtmlPageEditor({
 
   function handleMediaInsert(html: string) {
     setShowMedia(false);
-    // Wechsle zu Code-Ansicht damit man den eingefügten Tag sieht
-    setMode("edit");
+    if (mode === "preview") setMode("edit");
     insertAtCursor(html);
+  }
+
+  // Drag & Drop auf Textarea
+  function handleDragOver(e: React.DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+  function handleDragEnter(e: React.DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current++;
+    if (e.dataTransfer.types.includes("Files")) {
+      setIsDragging(true);
+    }
+  }
+  function handleDragLeave(e: React.DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current--;
+    if (dragCounterRef.current === 0) {
+      setIsDragging(false);
+    }
+  }
+  async function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    dragCounterRef.current = 0;
+    const files = Array.from(e.dataTransfer.files).filter((f) => f.type.startsWith("image/"));
+    if (files.length === 0) return;
+    saveCursorPos();
+    for (const file of files) {
+      const url = await uploadFile(file);
+      if (url) {
+        insertAtCursor(`<img src="${url}" alt="" style="max-width:100%;">\n`);
+      }
+    }
+  }
+
+  // Paste-Upload (Cmd+V mit Bild)
+  async function handlePaste(e: React.ClipboardEvent) {
+    const items = Array.from(e.clipboardData.items);
+    const imageItem = items.find((item) => item.type.startsWith("image/"));
+    if (!imageItem) return; // normales Paste-Verhalten
+    e.preventDefault();
+    saveCursorPos();
+    const placeholder = "<!-- Bild wird hochgeladen... -->";
+    insertAtCursor(placeholder);
+    const file = imageItem.getAsFile();
+    if (!file) return;
+    const url = await uploadFile(file);
+    const currentValue = valueRef.current;
+    if (url) {
+      const imgTag = `<img src="${url}" alt="" style="max-width:100%;">`;
+      onChange(currentValue.replace(placeholder, imgTag));
+    } else {
+      onChange(currentValue.replace(placeholder, ""));
+    }
+  }
+
+  // Schnell-Upload
+  async function handleQuickUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setQuickUploading(true);
+    const url = await uploadFile(file);
+    if (url) {
+      if (mode === "preview") setMode("edit");
+      insertAtCursor(`<img src="${url}" alt="" style="max-width:100%;">\n`);
+    }
+    setQuickUploading(false);
+    e.target.value = "";
   }
 
   const srcDoc = buildSrcDoc(value || "<p style='color:#94a3b8'>Noch kein Inhalt.</p>");
@@ -703,6 +801,18 @@ export function HtmlPageEditor({
             </button>
             <button
               type="button"
+              onClick={() => setMode("split")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                mode === "split"
+                  ? "bg-background text-foreground shadow-sm border border-border/60"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Columns2 className="w-3.5 h-3.5" />
+              Split
+            </button>
+            <button
+              type="button"
               onClick={() => setMode("preview")}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                 mode === "preview"
@@ -719,7 +829,28 @@ export function HtmlPageEditor({
           <div className="flex items-center gap-1">
             <button
               type="button"
-              onClick={() => { setMode("edit"); setShowMedia(true); }}
+              onClick={() => { saveCursorPos(); quickUploadRef.current?.click(); }}
+              disabled={quickUploading}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors disabled:opacity-60"
+              title="Bild direkt hochladen und einfügen"
+            >
+              {quickUploading ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <ImagePlus className="w-3.5 h-3.5" />
+              )}
+              Bild
+            </button>
+            <input
+              ref={quickUploadRef}
+              type="file"
+              accept="image/*"
+              onChange={handleQuickUpload}
+              className="hidden"
+            />
+            <button
+              type="button"
+              onClick={() => { saveCursorPos(); setShowMedia(true); }}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
               title="Bild oder Video aus der Medienbibliothek einfügen"
             >
@@ -757,19 +888,8 @@ export function HtmlPageEditor({
           </div>
         </div>
 
-        {/* Inhalt: Code oder Vorschau */}
-        {mode === "edit" ? (
-          <textarea
-            ref={textareaRef}
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            className="w-full min-h-[520px] p-4 font-mono text-sm bg-[#1e1e2e] text-[#cdd6f4] resize-y focus:outline-none leading-relaxed"
-            placeholder="HTML hier einfügen oder oben auf 'Template' klicken..."
-            spellCheck={false}
-            autoCapitalize="off"
-            autoCorrect="off"
-          />
-        ) : (
+        {/* Inhalt: Code, Split oder Vorschau */}
+        {mode === "preview" ? (
           <div className="bg-white min-h-[520px]">
             <iframe
               srcDoc={srcDoc}
@@ -777,6 +897,46 @@ export function HtmlPageEditor({
               sandbox="allow-scripts"
               title="HTML-Vorschau"
             />
+          </div>
+        ) : (
+          <div className={mode === "split" ? "flex" : ""}>
+            <div
+              className={`relative ${mode === "split" ? "w-1/2 border-r border-border/60" : "w-full"}`}
+              onDragOver={handleDragOver}
+              onDragEnter={handleDragEnter}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+            >
+              {isDragging && (
+                <div className="absolute inset-0 z-10 flex items-center justify-center bg-primary/10 border-2 border-dashed border-primary rounded-lg pointer-events-none">
+                  <p className="text-primary font-medium text-sm">Bild hier ablegen</p>
+                </div>
+              )}
+              <textarea
+                ref={textareaRef}
+                value={value}
+                onChange={(e) => { onChange(e.target.value); saveCursorPos(); }}
+                onSelect={saveCursorPos}
+                onKeyUp={saveCursorPos}
+                onClick={saveCursorPos}
+                onPaste={handlePaste}
+                className="w-full min-h-[520px] p-4 font-mono text-sm bg-[#1e1e2e] text-[#cdd6f4] resize-y focus:outline-none leading-relaxed"
+                placeholder="HTML hier einfügen oder oben auf 'Template' klicken..."
+                spellCheck={false}
+                autoCapitalize="off"
+                autoCorrect="off"
+              />
+            </div>
+            {mode === "split" && (
+              <div className="w-1/2 bg-white min-h-[520px]">
+                <iframe
+                  srcDoc={debouncedSrcDoc}
+                  className="w-full border-0 min-h-[520px]"
+                  sandbox="allow-scripts"
+                  title="HTML-Vorschau"
+                />
+              </div>
+            )}
           </div>
         )}
       </div>
