@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import {
   Heading2,
   Heading3,
@@ -1413,18 +1413,39 @@ function IconModal({
   onClose: () => void;
 }) {
   const [search, setSearch] = useState("");
-  const filtered = AVAILABLE_ICONS.filter((name) =>
-    name.toLowerCase().includes(search.toLowerCase())
-  );
+  const [visibleCount, setVisibleCount] = useState(120);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase();
+    if (!q) return AVAILABLE_ICONS;
+    return AVAILABLE_ICONS.filter((name) => name.includes(q));
+  }, [search]);
+
+  const visible = filtered.slice(0, visibleCount);
+
+  const handleScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 100) {
+      setVisibleCount((prev) => Math.min(prev + 120, filtered.length));
+    }
+  }, [filtered.length]);
+
+  // Reset visible count when search changes
+  useEffect(() => {
+    setVisibleCount(120);
+    if (scrollRef.current) scrollRef.current.scrollTop = 0;
+  }, [search]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
       <div
-        className="bg-card border border-border/60 rounded-xl shadow-xl w-full max-w-md max-h-[70vh] flex flex-col"
+        className="bg-card border border-border/60 rounded-xl shadow-xl w-full max-w-lg max-h-[80vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between p-4 border-b border-border/40">
-          <h3 className="font-semibold text-foreground">Icon einfugen</h3>
+          <h3 className="font-semibold text-foreground">Icon einfuegen</h3>
           <button type="button" onClick={onClose} className="text-muted-foreground hover:text-foreground">
             <X className="w-5 h-5" />
           </button>
@@ -1433,28 +1454,38 @@ function IconModal({
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Icon suchen..."
+            placeholder="Icon suchen... (z.B. arrow, check, heart, star)"
             className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
             autoFocus
           />
+          <p className="text-xs text-muted-foreground mt-1.5">
+            {filtered.length} Icons verfuegbar
+          </p>
         </div>
-        <div className="flex-1 overflow-y-auto p-4">
-          <div className="grid grid-cols-6 gap-2">
-            {filtered.map((name) => (
+        <div
+          ref={scrollRef}
+          onScroll={handleScroll}
+          className="flex-1 overflow-y-auto p-4"
+        >
+          <div className="grid grid-cols-8 gap-1.5">
+            {visible.map((name) => (
               <button
                 key={name}
                 type="button"
                 onClick={() => onInsert(`:icon[${name}] `)}
-                className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-accent transition-colors"
+                className="flex flex-col items-center gap-0.5 p-1.5 rounded-lg hover:bg-accent transition-colors"
                 title={name}
               >
                 <InlineIcon name={name} size={20} />
-                <span className="text-[9px] text-muted-foreground truncate max-w-full">{name}</span>
+                <span className="text-[8px] text-muted-foreground truncate max-w-full leading-tight">{name}</span>
               </button>
             ))}
           </div>
           {filtered.length === 0 && (
             <p className="text-sm text-muted-foreground text-center py-8">Kein Icon gefunden</p>
+          )}
+          {visibleCount < filtered.length && (
+            <p className="text-xs text-muted-foreground text-center py-2">Scrolle fuer mehr...</p>
           )}
         </div>
       </div>
@@ -1653,9 +1684,11 @@ function TabsModal({
     onInsert(lines.join("\n") + "\n");
   }
 
-  const filteredIcons = AVAILABLE_ICONS.filter((name) =>
-    name.toLowerCase().includes(iconFilter.toLowerCase())
-  );
+  const filteredIcons = useMemo(() => {
+    const q = iconFilter.toLowerCase();
+    if (!q) return AVAILABLE_ICONS.slice(0, 80);
+    return AVAILABLE_ICONS.filter((name) => name.includes(q)).slice(0, 80);
+  }, [iconFilter]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
