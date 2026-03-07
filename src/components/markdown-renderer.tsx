@@ -1,10 +1,12 @@
 "use client";
 
+import React, { useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import rehypeRaw from "rehype-raw";
+import { Check, Copy, Link as LinkIcon } from "lucide-react";
 import "katex/dist/katex.min.css";
 import { Callout, Accordion, Quiz, BildBlock, DemoBlock, HtmlDemoBlock, GlossarTooltip, SpaltenBlock, TabsBlock, KartenBlock, InlineIcon } from "./content-blocks";
 
@@ -33,6 +35,44 @@ type Block =
   | { type: "spalten"; columns: string[] }
   | { type: "tabs"; tabs: { title: string; icon?: string; content: string }[] }
   | { type: "karten"; cards: { title: string; badge?: string; badgeColor?: string; content: string }[]; columns?: number };
+
+const generateSlug = (text: string) => {
+  return text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "");
+};
+
+function CopyableCodeBlock({ children, className }: { children: React.ReactNode; className?: string }) {
+  const [copied, setCopied] = useState(false);
+  const language = className?.replace("language-", "") || "code";
+
+  const handleCopy = () => {
+    let text = "";
+    React.Children.forEach(children, (child) => {
+      if (typeof child === "string") text += child;
+    });
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="relative group my-4 rounded-lg border border-border/60 bg-foreground/5 overflow-hidden">
+      <div className="flex items-center justify-between px-3 py-1.5 bg-accent/50 border-b border-border/40">
+        <span className="text-xs font-mono text-muted-foreground">{language}</span>
+        <button
+          type="button"
+          onClick={handleCopy}
+          className="p-1 rounded text-muted-foreground hover:text-foreground transition-colors"
+          title="Code kopieren"
+        >
+          {copied ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
+        </button>
+      </div>
+      <div className="p-4 overflow-x-auto text-sm font-mono">
+        <code className={className}>{children}</code>
+      </div>
+    </div>
+  );
+}
 
 function parseContent(raw: string): Block[] {
   const blocks: Block[] = [];
@@ -359,12 +399,12 @@ function renderBlocks(blocks: Block[], glossary: GlossaryEntry[] = []) {
 }
 
 export function MarkdownRenderer({ content, glossary = [] }: { content: string; glossary?: GlossaryEntry[] }) {
-  const blocks = parseContent(content);
+  const blocks = useMemo(() => parseContent(content), [content]);
   return <div>{renderBlocks(blocks, glossary)}</div>;
 }
 
 function MarkdownBlock({ content, glossary = [] }: { content: string; glossary?: GlossaryEntry[] }) {
-  const processed = preprocessIcons(preprocessGlossar(content, glossary));
+  const processed = useMemo(() => preprocessIcons(preprocessGlossar(content, glossary)), [content, glossary]);
   return (
     <ReactMarkdown
       remarkPlugins={[remarkGfm, remarkMath]}
@@ -375,16 +415,30 @@ function MarkdownBlock({ content, glossary = [] }: { content: string; glossary?:
             {children}
           </h1>
         ),
-        h2: ({ children }) => (
-          <h2 className="text-2xl font-bold mt-8 mb-3 text-foreground border-b border-border/60 pb-2">
-            {children}
-          </h2>
-        ),
-        h3: ({ children }) => (
-          <h3 className="text-xl font-semibold mt-6 mb-2 text-foreground">
-            {children}
-          </h3>
-        ),
+        h2: ({ children }) => {
+          const text = React.Children.toArray(children).join("");
+          const id = generateSlug(text);
+          return (
+            <h2 id={id} className="group relative text-2xl font-bold mt-8 mb-3 text-foreground border-b border-border/60 pb-2 scroll-mt-24">
+              <a href={`#${id}`} className="absolute -left-6 opacity-0 group-hover:opacity-100 transition-opacity text-primary/50 hover:text-primary">
+                <LinkIcon size={18} />
+              </a>
+              {children}
+            </h2>
+          );
+        },
+        h3: ({ children }) => {
+          const text = React.Children.toArray(children).join("");
+          const id = generateSlug(text);
+          return (
+            <h3 id={id} className="group relative text-xl font-semibold mt-6 mb-2 text-foreground scroll-mt-24">
+              <a href={`#${id}`} className="absolute -left-5 opacity-0 group-hover:opacity-100 transition-opacity text-primary/40 hover:text-primary">
+                <LinkIcon size={16} />
+              </a>
+              {children}
+            </h3>
+          );
+        },
         h4: ({ children }) => (
           <h4 className="text-lg font-semibold mt-5 mb-2 text-foreground">
             {children}
@@ -427,11 +481,7 @@ function MarkdownBlock({ content, glossary = [] }: { content: string; glossary?:
         code: ({ children, className }) => {
           const isBlock = className?.includes("language-");
           if (isBlock) {
-            return (
-              <code className="block bg-foreground/5 rounded-lg p-4 text-sm overflow-x-auto font-mono">
-                {children}
-              </code>
-            );
+            return <CopyableCodeBlock className={className}>{children}</CopyableCodeBlock>;
           }
           return (
             <code className="bg-accent px-1.5 py-0.5 rounded text-sm font-mono text-primary">
@@ -439,7 +489,7 @@ function MarkdownBlock({ content, glossary = [] }: { content: string; glossary?:
             </code>
           );
         },
-        pre: ({ children }) => <pre className="mb-4">{children}</pre>,
+        pre: ({ children }) => <pre className="mb-0">{children}</pre>,
         table: ({ children }) => (
           <div className="my-6 overflow-x-auto rounded-xl border border-border/60 shadow-sm">
             <table className="w-full text-sm">{children}</table>
