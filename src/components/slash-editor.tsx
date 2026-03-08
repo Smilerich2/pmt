@@ -52,6 +52,7 @@ import {
   Trash2,
   FileText,
   Boxes,
+  Superscript,
   type LucideIcon,
 } from "lucide-react";
 
@@ -316,6 +317,15 @@ const slashCommands: SlashCommand[] = [
     category: "Medien",
     action: "modal",
     modalType: "icon",
+  },
+  {
+    id: "einheit",
+    label: "Einheit",
+    description: "Physikalische Einheit einfügen (g/m², N/mm² …)",
+    icon: Superscript,
+    category: "Inline",
+    action: "modal",
+    modalType: "einheit",
   },
   {
     id: "vorlage",
@@ -1536,6 +1546,129 @@ function SpaltenModal({
         <ModalFooter onClose={onClose} onConfirm={generate} label="Einfügen" />
       </div>
     </ModalShell>
+  );
+}
+
+// ─── Einheit (Unit) Picker Modal ───
+
+const UNIT_CATEGORIES: { label: string; units: { label: string; value: string }[] }[] = [
+  {
+    label: "Fläche & Volumen",
+    units: [
+      { label: "m²", value: "m²" },
+      { label: "cm²", value: "cm²" },
+      { label: "mm²", value: "mm²" },
+      { label: "m³", value: "m³" },
+      { label: "cm³", value: "cm³" },
+      { label: "mm³", value: "mm³" },
+    ],
+  },
+  {
+    label: "Flächengewicht & Dichte",
+    units: [
+      { label: "g/m²", value: "g/m²" },
+      { label: "kg/m²", value: "kg/m²" },
+      { label: "g/cm²", value: "g/cm²" },
+      { label: "kg/m³", value: "kg/m³" },
+      { label: "g/cm³", value: "g/cm³" },
+    ],
+  },
+  {
+    label: "Kraft & Druck",
+    units: [
+      { label: "N/m²", value: "N/m²" },
+      { label: "N/mm²", value: "N/mm²" },
+      { label: "kN/m²", value: "kN/m²" },
+      { label: "kPa", value: "kPa" },
+      { label: "MPa", value: "MPa" },
+    ],
+  },
+  {
+    label: "Geschwindigkeit & Durchsatz",
+    units: [
+      { label: "m/s", value: "m/s" },
+      { label: "m/min", value: "m/min" },
+      { label: "Stk/min", value: "Stk/min" },
+      { label: "Stk/h", value: "Stk/h" },
+    ],
+  },
+  {
+    label: "Temperatur & Sonstiges",
+    units: [
+      { label: "°C", value: "°C" },
+      { label: "°F", value: "°F" },
+      { label: "µm", value: "µm" },
+      { label: "%", value: "%" },
+      { label: "‰", value: "‰" },
+    ],
+  },
+];
+
+function EinheitModal({
+  onInsert,
+  onClose,
+}: {
+  onInsert: (text: string) => void;
+  onClose: () => void;
+}) {
+  const [filter, setFilter] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  const filtered = useMemo(() => {
+    if (!filter) return UNIT_CATEGORIES;
+    const q = filter.toLowerCase();
+    return UNIT_CATEGORIES.map((cat) => ({
+      ...cat,
+      units: cat.units.filter(
+        (u) => u.label.toLowerCase().includes(q) || u.value.toLowerCase().includes(q) || cat.label.toLowerCase().includes(q)
+      ),
+    })).filter((cat) => cat.units.length > 0);
+  }, [filter]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-card rounded-xl shadow-2xl border border-border/60 w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between p-4 border-b border-border/40">
+          <h3 className="font-semibold text-foreground">Einheit einfügen</h3>
+          <button onClick={onClose} className="p-1 rounded-lg hover:bg-accent text-muted-foreground"><X className="w-4 h-4" /></button>
+        </div>
+        <div className="p-3 border-b border-border/40">
+          <input
+            ref={inputRef}
+            type="text"
+            placeholder="Suchen… z.B. g/m²"
+            className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+          />
+        </div>
+        <div className="p-3 max-h-72 overflow-y-auto space-y-3">
+          {filtered.map((cat) => (
+            <div key={cat.label}>
+              <p className="text-[10px] font-semibold text-muted-foreground/70 uppercase tracking-wider px-1 pb-1">{cat.label}</p>
+              <div className="flex flex-wrap gap-1.5">
+                {cat.units.map((u) => (
+                  <button
+                    key={u.value}
+                    className="px-3 py-1.5 rounded-lg border border-border/60 bg-background hover:bg-primary/10 hover:border-primary/40 text-sm font-medium text-foreground transition-colors"
+                    onClick={() => { onInsert(u.value); onClose(); }}
+                  >
+                    {u.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+          {filtered.length === 0 && (
+            <p className="text-sm text-muted-foreground text-center py-4">Keine Einheit gefunden</p>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -3117,6 +3250,7 @@ export function SlashEditor({
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [slashPos, setSlashPos] = useState<number | null>(null);
   const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
+  const [menuOpensUp, setMenuOpensUp] = useState(false);
   const [modal, setModal] = useState<string | null>(null);
   const [imageModalUrl, setImageModalUrl] = useState<string | undefined>(undefined);
   const [isDragging, setIsDragging] = useState(false);
@@ -3132,6 +3266,78 @@ export function SlashEditor({
   const [debouncedContent, setDebouncedContent] = useState(value);
   const [formatPopover, setFormatPopover] = useState<{ top: number; left: number } | null>(null);
   const formatPopoverRef = useRef<HTMLDivElement>(null);
+  const [cursorLine, setCursorLine] = useState(0);
+  const overlayRef = useRef<HTMLDivElement>(null);
+
+  // ─── Block Breadcrumb & Matching ───
+
+  type BreadcrumbEntry = { label: string; line: number };
+
+  const blockAnalysis = useMemo(() => {
+    const lines = value.split("\n");
+    // Build a stack-based block structure
+    const blockStack: { type: string; label: string; startLine: number; depth: number }[] = [];
+    const lineBlocks: BreadcrumbEntry[][] = []; // breadcrumb for each line
+    // matchMap: for a given line index, the matching open/close line index
+    const matchMap = new Map<number, number>();
+    const stack: { type: string; label: string; line: number }[] = [];
+
+    for (let i = 0; i < lines.length; i++) {
+      const trimmed = lines[i].trim();
+
+      // Check for block opener: :::type or :::type[...]
+      const openerMatch = trimmed.match(/^:::(merke|tipp|warnung|info|bild\[|demo\[|htmldemo|spalten|tabs|karten)/);
+      if (openerMatch) {
+        const type = openerMatch[1].replace("[", "");
+        const labelMap: Record<string, string> = {
+          merke: "Merke", tipp: "Tipp", warnung: "Warnung", info: "Info",
+          bild: "Bild", demo: "Demo", htmldemo: "HTML-Demo",
+          spalten: "Spalten", tabs: "Tabs", karten: "Karten",
+        };
+        stack.push({ type, label: labelMap[type] || type, line: i });
+        lineBlocks.push(stack.map((s) => ({ label: s.label, line: s.line })));
+        continue;
+      }
+
+      // Check for closing :::
+      if (trimmed === ":::") {
+        if (stack.length > 0) {
+          const opener = stack.pop()!;
+          matchMap.set(i, opener.line);
+          matchMap.set(opener.line, i);
+        }
+        lineBlocks.push(stack.map((s) => ({ label: s.label, line: s.line })));
+        continue;
+      }
+
+      // Check for --- separators (tabs/karten) - only at depth 0 relative to current container
+      if (trimmed.startsWith("---") && stack.length > 0) {
+        const parent = stack[stack.length - 1];
+        if (parent.type === "tabs" || parent.type === "karten" || parent.type === "spalten") {
+          // Extract tab/card name
+          const sepLabel = trimmed.slice(3).split("|")[0].trim() || `${parent.type === "tabs" ? "Tab" : parent.type === "karten" ? "Karte" : "Spalte"}`;
+          lineBlocks.push([...stack.map((s) => ({ label: s.label, line: s.line })), { label: sepLabel, line: i }]);
+          continue;
+        }
+      }
+
+      lineBlocks.push(stack.map((s) => ({ label: s.label, line: s.line })));
+    }
+
+    return { lineBlocks, matchMap };
+  }, [value]);
+
+  const breadcrumb = blockAnalysis.lineBlocks[cursorLine] || [];
+  const matchingLine = blockAnalysis.matchMap.get(cursorLine);
+
+  // Track cursor line on every cursor move
+  function updateCursorLine() {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    const pos = ta.selectionStart;
+    const lineNum = value.substring(0, pos).split("\n").length - 1;
+    setCursorLine(lineNum);
+  }
 
   // ─── Undo/Redo Stack ───
   const historyRef = useRef<string[]>([value]);
@@ -3518,9 +3724,9 @@ export function SlashEditor({
     setModal(null);
   }
 
-  function calculateMenuPosition(): { top: number; left: number } {
+  function calculateMenuPosition(): { top: number; left: number; opensUp: boolean } {
     const ta = textareaRef.current;
-    if (!ta) return { top: 0, left: 60 };
+    if (!ta) return { top: 0, left: 60, opensUp: false };
 
     // Create a mirror div to measure cursor position accurately
     const mirror = document.createElement("div");
@@ -3543,11 +3749,27 @@ export function SlashEditor({
     mirror.appendChild(span);
     document.body.appendChild(mirror);
 
-    const top = span.offsetTop - ta.scrollTop + 28;
+    const cursorTopInTa = span.offsetTop - ta.scrollTop + 28;
     const left = Math.min(span.offsetLeft + 12, ta.clientWidth - 290);
 
     document.body.removeChild(mirror);
-    return { top: Math.max(0, Math.min(top, ta.clientHeight - 40)), left: Math.max(12, left) };
+
+    // Check if menu would overflow viewport bottom
+    const taRect = ta.getBoundingClientRect();
+    const menuMaxHeight = Math.min(360, window.innerHeight * 0.5);
+    const cursorScreenY = taRect.top + cursorTopInTa;
+
+    let top: number;
+    let opensUp = false;
+    if (cursorScreenY + menuMaxHeight > window.innerHeight - 16) {
+      // Not enough space below → position above cursor
+      top = cursorTopInTa - menuMaxHeight - 8;
+      opensUp = true;
+    } else {
+      top = cursorTopInTa;
+    }
+
+    return { top: Math.max(0, top), left: Math.max(12, left), opensUp };
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -3786,7 +4008,11 @@ export function SlashEditor({
       setFilter("");
       setSelectedIndex(0);
       // Defer position calculation so the DOM is up to date
-      requestAnimationFrame(() => setMenuPosition(calculateMenuPosition()));
+      requestAnimationFrame(() => {
+        const pos = calculateMenuPosition();
+        setMenuPosition({ top: pos.top, left: pos.left });
+        setMenuOpensUp(pos.opensUp);
+      });
     } else if (showMenu && slashPos !== null) {
       // Close if the slash was deleted or cursor moved before it
       if (pos <= slashPos || newValue[slashPos] !== "/") {
@@ -4191,22 +4417,83 @@ export function SlashEditor({
               </div>
             )}
 
+            {/* Block Breadcrumb */}
+            {breadcrumb.length > 0 && (
+              <div className="flex items-center gap-1 px-3 py-1.5 bg-accent/50 border border-border/40 rounded-lg mb-1 text-xs overflow-x-auto">
+                <span className="text-muted-foreground/60 shrink-0">📍</span>
+                {breadcrumb.map((entry, i) => (
+                  <span key={i} className="flex items-center gap-1 shrink-0">
+                    {i > 0 && <span className="text-muted-foreground/40">›</span>}
+                    <button
+                      type="button"
+                      className="px-1.5 py-0.5 rounded bg-background/80 border border-border/40 text-foreground/80 hover:bg-primary/10 hover:text-primary hover:border-primary/30 transition-colors cursor-pointer"
+                      onClick={() => {
+                        const ta = textareaRef.current;
+                        if (!ta) return;
+                        // Jump to that line
+                        const lines = value.split("\n");
+                        let pos = 0;
+                        for (let l = 0; l < entry.line; l++) pos += lines[l].length + 1;
+                        ta.focus();
+                        ta.setSelectionRange(pos, pos + lines[entry.line].length);
+                        setCursorLine(entry.line);
+                      }}
+                    >
+                      {entry.label}
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+
             <div className={`relative ${isFullscreen ? "flex-1 min-h-0" : ""}`}>
               <textarea
                 ref={textareaRef}
                 value={value}
-                onChange={handleChange}
+                onChange={(e) => { handleChange(e); updateCursorLine(); }}
                 onKeyDown={handleKeyDown}
                 onPaste={handlePaste}
-                onScroll={syncEditorScroll}
-                onMouseUp={handleSelectionChange}
-                onSelect={handleSelectionChange}
+                onScroll={(e) => { syncEditorScroll(); /* sync overlay scroll */ if (overlayRef.current) overlayRef.current.scrollTop = (e.target as HTMLTextAreaElement).scrollTop; }}
+                onMouseUp={() => { handleSelectionChange(); updateCursorLine(); }}
+                onSelect={() => { handleSelectionChange(); updateCursorLine(); }}
+                onKeyUp={updateCursorLine}
                 placeholder={"Schreibe deinen Inhalt...\nTippe / für Blöcke · Bilder per Drag & Drop oder Strg+V einfügen"}
                 className={`w-full rounded-lg border border-input bg-background px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
                   isFullscreen ? "h-full resize-none" : viewMode === "split" ? "min-h-[500px] max-h-[700px] resize-none" : "min-h-[300px] resize-none"
                 }`}
                 style={{ lineHeight: "22px" }}
               />
+
+              {/* Matching block highlight overlay */}
+              {matchingLine !== undefined && (
+                <div
+                  ref={overlayRef}
+                  className="absolute inset-0 pointer-events-none overflow-hidden rounded-lg"
+                  style={{ padding: "12px 16px" }}
+                >
+                  {(() => {
+                    const lineHeight = 22;
+                    const ta = textareaRef.current;
+                    const scrollTop = ta?.scrollTop || 0;
+                    // Current line highlight
+                    const curY = cursorLine * lineHeight - scrollTop;
+                    // Matching line highlight
+                    const matchY = matchingLine * lineHeight - scrollTop;
+                    return (
+                      <>
+                        <div
+                          className="absolute left-0 right-0 bg-primary/8 border-l-2 border-primary/40"
+                          style={{ top: curY + 12, height: lineHeight }}
+                        />
+                        <div
+                          className="absolute left-0 right-0 bg-primary/8 border-l-2 border-primary/40"
+                          style={{ top: matchY + 12, height: lineHeight }}
+                        />
+                      </>
+                    );
+                  })()}
+                </div>
+              )}
             </div>
 
             {/* Format Popover */}
@@ -4327,15 +4614,20 @@ export function SlashEditor({
             {showMenu && flatFiltered.length > 0 && (
               <div
                 ref={menuRef}
-                className="absolute z-50 w-80 rounded-xl border border-border/60 bg-card shadow-xl overflow-hidden flex flex-col animate-slash-menu-in"
+                className={`absolute z-50 w-80 rounded-xl border border-border/60 bg-card shadow-xl overflow-hidden flex flex-col ${menuOpensUp ? "animate-slash-menu-up" : "animate-slash-menu-down"}`}
                 style={{ top: menuPosition?.top ?? 0, left: menuPosition?.left ?? 16, maxHeight: "min(360px, 50vh)" }}
               >
                 <style dangerouslySetInnerHTML={{ __html: `
-                  @keyframes slashMenuIn {
+                  @keyframes slashMenuInDown {
                     from { opacity: 0; transform: translateY(-4px) scale(0.97); }
                     to { opacity: 1; transform: translateY(0) scale(1); }
                   }
-                  .animate-slash-menu-in { animation: slashMenuIn 120ms ease-out; }
+                  @keyframes slashMenuInUp {
+                    from { opacity: 0; transform: translateY(4px) scale(0.97); }
+                    to { opacity: 1; transform: translateY(0) scale(1); }
+                  }
+                  .animate-slash-menu-down { animation: slashMenuInDown 120ms ease-out; }
+                  .animate-slash-menu-up { animation: slashMenuInUp 120ms ease-out; }
                 ` }} />
                 <div className="px-3 py-2 border-b border-border/40 shrink-0">
                   <p className="text-xs text-muted-foreground">
@@ -4504,6 +4796,9 @@ export function SlashEditor({
       )}
       {modal === "icon" && (
         <IconModal onInsert={handleModalInsert} onClose={() => setModal(null)} />
+      )}
+      {modal === "einheit" && (
+        <EinheitModal onInsert={handleModalInsert} onClose={() => setModal(null)} />
       )}
       {modal === "vorlage" && (
         <VorlageModal onInsert={handleModalInsert} onClose={() => setModal(null)} />
