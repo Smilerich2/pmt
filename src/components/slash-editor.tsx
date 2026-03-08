@@ -4447,53 +4447,86 @@ export function SlashEditor({
             )}
 
             <div className={`relative ${isFullscreen ? "flex-1 min-h-0" : ""}`}>
+              {/* Backdrop div for line highlighting (behind textarea) */}
+              <div
+                ref={overlayRef}
+                aria-hidden="true"
+                className={`absolute rounded-lg overflow-hidden pointer-events-none bg-background ${
+                  isFullscreen ? "h-full" : viewMode === "split" ? "min-h-[500px] max-h-[700px]" : "min-h-[300px]"
+                }`}
+                style={{ inset: 0, padding: "12px 16px", border: "1px solid transparent" }}
+              >
+                <div style={{ position: "relative" }}>
+                  {value.split("\n").map((line, i) => {
+                    const trimmed = line.trim();
+                    const isOpener = /^:::(merke|tipp|warnung|info|bild\[|demo\[|htmldemo|spalten|tabs|karten)/.test(trimmed);
+                    const isCloser = trimmed === ":::";
+                    const isDelimiter = isOpener || isCloser;
+                    const isCurrent = i === cursorLine && isDelimiter;
+                    const isMatch = i === matchingLine;
+                    const depth = (blockAnalysis.lineBlocks[i] || []).length;
+                    const isSeparator = trimmed.startsWith("---") && depth > 0;
+
+                    // Depth color coding for ::: lines
+                    const depthColors = [
+                      "rgba(59,130,246,0.08)",  // blue
+                      "rgba(16,185,129,0.08)",  // green
+                      "rgba(245,158,11,0.08)",  // amber
+                      "rgba(139,92,246,0.08)",  // violet
+                    ];
+
+                    let bg = "transparent";
+                    let borderLeft = "2px solid transparent";
+                    if (isCurrent || isMatch) {
+                      bg = "rgba(var(--primary-rgb, 59,130,246), 0.12)";
+                      borderLeft = "3px solid hsl(var(--primary))";
+                    } else if (isDelimiter && depth > 0) {
+                      bg = depthColors[(depth - 1) % depthColors.length];
+                      borderLeft = `2px solid ${depthColors[(depth - 1) % depthColors.length].replace("0.08", "0.3")}`;
+                    } else if (isCloser) {
+                      bg = depthColors[0];
+                    } else if (isSeparator) {
+                      bg = "rgba(107,114,128,0.06)";
+                      borderLeft = "2px solid rgba(107,114,128,0.2)";
+                    }
+
+                    return (
+                      <div
+                        key={i}
+                        style={{
+                          height: 22,
+                          background: bg,
+                          borderLeft,
+                          marginLeft: -16,
+                          paddingLeft: 14,
+                          marginRight: -16,
+                          transition: "background 150ms, border-left 150ms",
+                        }}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+
               <textarea
                 ref={textareaRef}
                 value={value}
                 onChange={(e) => { handleChange(e); updateCursorLine(); }}
                 onKeyDown={handleKeyDown}
                 onPaste={handlePaste}
-                onScroll={(e) => { syncEditorScroll(); /* sync overlay scroll */ if (overlayRef.current) overlayRef.current.scrollTop = (e.target as HTMLTextAreaElement).scrollTop; }}
+                onScroll={(e) => {
+                  syncEditorScroll();
+                  if (overlayRef.current) overlayRef.current.scrollTop = (e.target as HTMLTextAreaElement).scrollTop;
+                }}
                 onMouseUp={() => { handleSelectionChange(); updateCursorLine(); }}
                 onSelect={() => { handleSelectionChange(); updateCursorLine(); }}
                 onKeyUp={updateCursorLine}
                 placeholder={"Schreibe deinen Inhalt...\nTippe / für Blöcke · Bilder per Drag & Drop oder Strg+V einfügen"}
-                className={`w-full rounded-lg border border-input bg-background px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
+                className={`w-full rounded-lg border border-input px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
                   isFullscreen ? "h-full resize-none" : viewMode === "split" ? "min-h-[500px] max-h-[700px] resize-none" : "min-h-[300px] resize-none"
                 }`}
-                style={{ lineHeight: "22px" }}
+                style={{ lineHeight: "22px", background: "transparent", position: "relative", zIndex: 1 }}
               />
-
-              {/* Matching block highlight overlay */}
-              {matchingLine !== undefined && (
-                <div
-                  ref={overlayRef}
-                  className="absolute inset-0 pointer-events-none overflow-hidden rounded-lg"
-                  style={{ padding: "12px 16px" }}
-                >
-                  {(() => {
-                    const lineHeight = 22;
-                    const ta = textareaRef.current;
-                    const scrollTop = ta?.scrollTop || 0;
-                    // Current line highlight
-                    const curY = cursorLine * lineHeight - scrollTop;
-                    // Matching line highlight
-                    const matchY = matchingLine * lineHeight - scrollTop;
-                    return (
-                      <>
-                        <div
-                          className="absolute left-0 right-0 bg-primary/8 border-l-2 border-primary/40"
-                          style={{ top: curY + 12, height: lineHeight }}
-                        />
-                        <div
-                          className="absolute left-0 right-0 bg-primary/8 border-l-2 border-primary/40"
-                          style={{ top: matchY + 12, height: lineHeight }}
-                        />
-                      </>
-                    );
-                  })()}
-                </div>
-              )}
             </div>
 
             {/* Format Popover */}
