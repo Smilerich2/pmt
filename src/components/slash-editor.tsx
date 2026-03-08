@@ -3266,79 +3266,6 @@ export function SlashEditor({
   const [debouncedContent, setDebouncedContent] = useState(value);
   const [formatPopover, setFormatPopover] = useState<{ top: number; left: number } | null>(null);
   const formatPopoverRef = useRef<HTMLDivElement>(null);
-  const [cursorLine, setCursorLine] = useState(0);
-  const overlayRef = useRef<HTMLDivElement>(null);
-
-  // ─── Block Breadcrumb & Matching ───
-
-  type BreadcrumbEntry = { label: string; line: number };
-
-  const blockAnalysis = useMemo(() => {
-    const lines = value.split("\n");
-    // Build a stack-based block structure
-    const blockStack: { type: string; label: string; startLine: number; depth: number }[] = [];
-    const lineBlocks: BreadcrumbEntry[][] = []; // breadcrumb for each line
-    // matchMap: for a given line index, the matching open/close line index
-    const matchMap = new Map<number, number>();
-    const stack: { type: string; label: string; line: number }[] = [];
-
-    for (let i = 0; i < lines.length; i++) {
-      const trimmed = lines[i].trim();
-
-      // Check for block opener: :::type or :::type[...]
-      const openerMatch = trimmed.match(/^:::(merke|tipp|warnung|info|bild\[|demo\[|htmldemo|spalten|tabs|karten)/);
-      if (openerMatch) {
-        const type = openerMatch[1].replace("[", "");
-        const labelMap: Record<string, string> = {
-          merke: "Merke", tipp: "Tipp", warnung: "Warnung", info: "Info",
-          bild: "Bild", demo: "Demo", htmldemo: "HTML-Demo",
-          spalten: "Spalten", tabs: "Tabs", karten: "Karten",
-        };
-        stack.push({ type, label: labelMap[type] || type, line: i });
-        lineBlocks.push(stack.map((s) => ({ label: s.label, line: s.line })));
-        continue;
-      }
-
-      // Check for closing :::
-      if (trimmed === ":::") {
-        if (stack.length > 0) {
-          const opener = stack.pop()!;
-          matchMap.set(i, opener.line);
-          matchMap.set(opener.line, i);
-        }
-        lineBlocks.push(stack.map((s) => ({ label: s.label, line: s.line })));
-        continue;
-      }
-
-      // Check for --- separators (tabs/karten) - only at depth 0 relative to current container
-      if (trimmed.startsWith("---") && stack.length > 0) {
-        const parent = stack[stack.length - 1];
-        if (parent.type === "tabs" || parent.type === "karten" || parent.type === "spalten") {
-          // Extract tab/card name
-          const sepLabel = trimmed.slice(3).split("|")[0].trim() || `${parent.type === "tabs" ? "Tab" : parent.type === "karten" ? "Karte" : "Spalte"}`;
-          lineBlocks.push([...stack.map((s) => ({ label: s.label, line: s.line })), { label: sepLabel, line: i }]);
-          continue;
-        }
-      }
-
-      lineBlocks.push(stack.map((s) => ({ label: s.label, line: s.line })));
-    }
-
-    return { lineBlocks, matchMap };
-  }, [value]);
-
-  const breadcrumb = blockAnalysis.lineBlocks[cursorLine] || [];
-  const matchingLine = blockAnalysis.matchMap.get(cursorLine);
-
-  // Track cursor line on every cursor move
-  function updateCursorLine() {
-    const ta = textareaRef.current;
-    if (!ta) return;
-    const pos = ta.selectionStart;
-    const lineNum = value.substring(0, pos).split("\n").length - 1;
-    setCursorLine(lineNum);
-  }
-
   // ─── Undo/Redo Stack ───
   const historyRef = useRef<string[]>([value]);
   const historyIndexRef = useRef(0);
@@ -4417,115 +4344,21 @@ export function SlashEditor({
               </div>
             )}
 
-            {/* Block Breadcrumb */}
-            {breadcrumb.length > 0 && (
-              <div className="flex items-center gap-1 px-3 py-1.5 bg-accent/50 border border-border/40 rounded-lg mb-1 text-xs overflow-x-auto">
-                <span className="text-muted-foreground/60 shrink-0">📍</span>
-                {breadcrumb.map((entry, i) => (
-                  <span key={i} className="flex items-center gap-1 shrink-0">
-                    {i > 0 && <span className="text-muted-foreground/40">›</span>}
-                    <button
-                      type="button"
-                      className="px-1.5 py-0.5 rounded bg-background/80 border border-border/40 text-foreground/80 hover:bg-primary/10 hover:text-primary hover:border-primary/30 transition-colors cursor-pointer"
-                      onClick={() => {
-                        const ta = textareaRef.current;
-                        if (!ta) return;
-                        // Jump to that line
-                        const lines = value.split("\n");
-                        let pos = 0;
-                        for (let l = 0; l < entry.line; l++) pos += lines[l].length + 1;
-                        ta.focus();
-                        ta.setSelectionRange(pos, pos + lines[entry.line].length);
-                        setCursorLine(entry.line);
-                      }}
-                    >
-                      {entry.label}
-                    </button>
-                  </span>
-                ))}
-              </div>
-            )}
-
             <div className={`relative ${isFullscreen ? "flex-1 min-h-0" : ""}`}>
-              {/* Backdrop div for line highlighting (behind textarea) */}
-              <div
-                ref={overlayRef}
-                aria-hidden="true"
-                className={`absolute rounded-lg overflow-hidden pointer-events-none bg-background ${
-                  isFullscreen ? "h-full" : viewMode === "split" ? "min-h-[500px] max-h-[700px]" : "min-h-[300px]"
-                }`}
-                style={{ inset: 0, padding: "12px 16px", border: "1px solid transparent" }}
-              >
-                <div style={{ position: "relative" }}>
-                  {value.split("\n").map((line, i) => {
-                    const trimmed = line.trim();
-                    const isOpener = /^:::(merke|tipp|warnung|info|bild\[|demo\[|htmldemo|spalten|tabs|karten)/.test(trimmed);
-                    const isCloser = trimmed === ":::";
-                    const isDelimiter = isOpener || isCloser;
-                    const isCurrent = i === cursorLine && isDelimiter;
-                    const isMatch = i === matchingLine;
-                    const depth = (blockAnalysis.lineBlocks[i] || []).length;
-                    const isSeparator = trimmed.startsWith("---") && depth > 0;
-
-                    // Depth color coding for ::: lines
-                    const depthColors = [
-                      "rgba(59,130,246,0.08)",  // blue
-                      "rgba(16,185,129,0.08)",  // green
-                      "rgba(245,158,11,0.08)",  // amber
-                      "rgba(139,92,246,0.08)",  // violet
-                    ];
-
-                    let bg = "transparent";
-                    let borderLeft = "2px solid transparent";
-                    if (isCurrent || isMatch) {
-                      bg = "rgba(var(--primary-rgb, 59,130,246), 0.12)";
-                      borderLeft = "3px solid hsl(var(--primary))";
-                    } else if (isDelimiter && depth > 0) {
-                      bg = depthColors[(depth - 1) % depthColors.length];
-                      borderLeft = `2px solid ${depthColors[(depth - 1) % depthColors.length].replace("0.08", "0.3")}`;
-                    } else if (isCloser) {
-                      bg = depthColors[0];
-                    } else if (isSeparator) {
-                      bg = "rgba(107,114,128,0.06)";
-                      borderLeft = "2px solid rgba(107,114,128,0.2)";
-                    }
-
-                    return (
-                      <div
-                        key={i}
-                        style={{
-                          height: 22,
-                          background: bg,
-                          borderLeft,
-                          marginLeft: -16,
-                          paddingLeft: 14,
-                          marginRight: -16,
-                          transition: "background 150ms, border-left 150ms",
-                        }}
-                      />
-                    );
-                  })}
-                </div>
-              </div>
-
               <textarea
                 ref={textareaRef}
                 value={value}
-                onChange={(e) => { handleChange(e); updateCursorLine(); }}
+                onChange={handleChange}
                 onKeyDown={handleKeyDown}
                 onPaste={handlePaste}
-                onScroll={(e) => {
-                  syncEditorScroll();
-                  if (overlayRef.current) overlayRef.current.scrollTop = (e.target as HTMLTextAreaElement).scrollTop;
-                }}
-                onMouseUp={() => { handleSelectionChange(); updateCursorLine(); }}
-                onSelect={() => { handleSelectionChange(); updateCursorLine(); }}
-                onKeyUp={updateCursorLine}
+                onScroll={syncEditorScroll}
+                onMouseUp={handleSelectionChange}
+                onSelect={handleSelectionChange}
                 placeholder={"Schreibe deinen Inhalt...\nTippe / für Blöcke · Bilder per Drag & Drop oder Strg+V einfügen"}
-                className={`w-full rounded-lg border border-input px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
+                className={`w-full rounded-lg border border-input bg-background px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
                   isFullscreen ? "h-full resize-none" : viewMode === "split" ? "min-h-[500px] max-h-[700px] resize-none" : "min-h-[300px] resize-none"
                 }`}
-                style={{ lineHeight: "22px", background: "transparent", position: "relative", zIndex: 1 }}
+                style={{ lineHeight: "22px" }}
               />
             </div>
 
